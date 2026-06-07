@@ -20,19 +20,17 @@ export const ChatLockModal: React.FC<ChatLockModalProps> = ({ isOpen, onClose, m
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  const inputRefs = [
-    useRef<HTMLInputElement>(null),
-    useRef<HTMLInputElement>(null),
-    useRef<HTMLInputElement>(null),
-    useRef<HTMLInputElement>(null),
-  ];
+  const inputRef0 = useRef<HTMLInputElement>(null);
+  const inputRef1 = useRef<HTMLInputElement>(null);
+  const inputRef2 = useRef<HTMLInputElement>(null);
+  const inputRef3 = useRef<HTMLInputElement>(null);
+  const inputRefs = [inputRef0, inputRef1, inputRef2, inputRef3];
 
-  const confirmRefs = [
-    useRef<HTMLInputElement>(null),
-    useRef<HTMLInputElement>(null),
-    useRef<HTMLInputElement>(null),
-    useRef<HTMLInputElement>(null),
-  ];
+  const confirmRef0 = useRef<HTMLInputElement>(null);
+  const confirmRef1 = useRef<HTMLInputElement>(null);
+  const confirmRef2 = useRef<HTMLInputElement>(null);
+  const confirmRef3 = useRef<HTMLInputElement>(null);
+  const confirmRefs = [confirmRef0, confirmRef1, confirmRef2, confirmRef3];
 
   // Auto-focus first input on mount or mode change
   useEffect(() => {
@@ -59,20 +57,21 @@ export const ChatLockModal: React.FC<ChatLockModalProps> = ({ isOpen, onClose, m
     value: string,
     isConfirmStep: boolean
   ) => {
+    const lastChar = value.slice(-1);
     // Only allow numbers
-    if (value && !/^\d$/.test(value)) return;
+    if (lastChar && !/^\d$/.test(lastChar)) return;
 
     const currentDigits = isConfirmStep ? confirmDigits : digits;
     const currentRefs = isConfirmStep ? confirmRefs : inputRefs;
     const setter = isConfirmStep ? setConfirmDigits : setDigits;
 
     const newDigits = [...currentDigits];
-    newDigits[index] = value;
+    newDigits[index] = lastChar;
     setter(newDigits);
     setError(null);
 
     // Auto-focus next input if a number is typed
-    if (value && index < 3) {
+    if (lastChar && index < 3) {
       currentRefs[index + 1].current?.focus();
     }
   };
