@@ -89,6 +89,7 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const peerConnectionRef = useRef<RTCPeerConnection | null>(null);
   const localStreamRef = useRef<MediaStream | null>(null);
   const offerDataRef = useRef<any>(null);
+  const queuedCandidatesRef = useRef<any[]>([]);
 
   const socketUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
@@ -177,6 +178,7 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         try {
           await peerConnectionRef.current.setRemoteDescription(new RTCSessionDescription(answer));
           setCallInfo((prev) => ({ ...prev, status: 'connected' }));
+          await processQueuedCandidates();
         } catch (error) {
           console.error('Error setting remote description on acceptCall:', error);
         }
@@ -191,12 +193,16 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
     // ICE Candidate relay
     socketInstance.on('iceCandidate', async ({ candidate }) => {
-      if (peerConnectionRef.current) {
+      const pc = peerConnectionRef.current;
+      if (pc && pc.remoteDescription) {
         try {
-          await peerConnectionRef.current.addIceCandidate(new RTCIceCandidate(candidate));
+          await pc.addIceCandidate(new RTCIceCandidate(candidate));
         } catch (error) {
           console.error('Error adding ICE candidate:', error);
         }
+      } else {
+        console.log('Socket Context: Queuing ICE candidate (remoteDescription not set yet)');
+        queuedCandidatesRef.current.push(candidate);
       }
     });
 
@@ -231,6 +237,7 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   const cleanupCall = () => {
     setCallInfo({ status: 'idle', isIncoming: false });
+    queuedCandidatesRef.current = [];
     if (peerConnectionRef.current) {
       peerConnectionRef.current.close();
       peerConnectionRef.current = null;
@@ -243,6 +250,22 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     setRemoteStream(null);
     setIsMuted(false);
     setIsVideoOff(false);
+  };
+
+  const processQueuedCandidates = async () => {
+    const pc = peerConnectionRef.current;
+    if (pc && pc.remoteDescription && queuedCandidatesRef.current.length > 0) {
+      console.log(`Socket Context: Processing ${queuedCandidatesRef.current.length} queued ICE candidates`);
+      const candidates = [...queuedCandidatesRef.current];
+      queuedCandidatesRef.current = [];
+      for (const cand of candidates) {
+        try {
+          await pc.addIceCandidate(new RTCIceCandidate(cand));
+        } catch (error) {
+          console.error('Error adding queued ICE candidate:', error);
+        }
+      }
+    }
   };
 
   const getMediaStream = async (type: 'voice' | 'video'): Promise<MediaStream | null> => {
@@ -264,7 +287,19 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   const createPeerConnection = (targetUserId: string, stream: MediaStream | null) => {
     const pc = new RTCPeerConnection({
-      iceServers: [{ urls: 'stun:stun.l.google.com:19302' }],
+      iceServers: [
+        { urls: 'stun:stun.l.google.com:19302' },
+        { urls: 'stun:stun1.l.google.com:19302' },
+        { urls: 'stun:stun2.l.google.com:19302' },
+        { urls: 'stun:stun3.l.google.com:19302' },
+        { urls: 'stun:stun4.l.google.com:19302' },
+        // For production, configure custom TURN servers here to relay media behind symmetric firewalls:
+        // {
+        //   urls: 'turn:YOUR_TURN_SERVER_DOMAIN_OR_IP:3478',
+        //   username: 'YOUR_TURN_USERNAME',
+        //   credential: 'YOUR_TURN_PASSWORD'
+        // }
+      ],
     });
 
     if (stream) {
@@ -304,6 +339,12 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     if (!socket) return;
     cleanupCall();
 
+    const stream = await getMediaStream(type);
+    if (!stream) {
+      alert(`Could not access your ${type === 'video' ? 'camera/microphone' : 'microphone'}. Please check device permissions.`);
+      return;
+    }
+
     setCallInfo({
       status: 'ringing_out',
       callerName: callerName,
@@ -314,7 +355,6 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       isIncoming: false,
     });
 
-    const stream = await getMediaStream(type);
     const pc = createPeerConnection(targetUserId, stream);
 
     try {
@@ -341,6 +381,12 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
     const type = callInfo.callType || 'voice';
     const stream = await getMediaStream(type);
+    if (!stream) {
+      alert(`Could not access your ${type === 'video' ? 'camera/microphone' : 'microphone'}. Please check device permissions.`);
+      rejectCall();
+      return;
+    }
+
     const pc = createPeerConnection(callInfo.targetUserId, stream);
 
     try {
@@ -354,6 +400,7 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       });
 
       setCallInfo((prev) => ({ ...prev, status: 'connected' }));
+      await processQueuedCandidates();
     } catch (err) {
       console.error('Error accepting call:', err);
       cleanupCall();
