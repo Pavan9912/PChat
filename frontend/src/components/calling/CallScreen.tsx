@@ -18,6 +18,7 @@ export const CallScreen: React.FC = () => {
 
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const remoteVideoRef = useRef<HTMLVideoElement>(null);
+  const remoteAudioRef = useRef<HTMLAudioElement>(null);
 
   const apiHost = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
@@ -34,6 +35,13 @@ export const CallScreen: React.FC = () => {
       remoteVideoRef.current.srcObject = remoteStream;
     }
   }, [remoteStream, callInfo.status]);
+
+  // Attach remote audio stream for voice-only calls
+  useEffect(() => {
+    if (remoteAudioRef.current && remoteStream && callInfo.callType === 'voice') {
+      remoteAudioRef.current.srcObject = remoteStream;
+    }
+  }, [remoteStream, callInfo.status, callInfo.callType]);
 
   if (callInfo.status === 'idle') return null;
 
@@ -182,6 +190,16 @@ export const CallScreen: React.FC = () => {
         )}
 
       </div>
+
+      {/* Hidden audio element for voice calls */}
+      {isConnected && callInfo.callType === 'voice' && (
+        <audio
+          ref={remoteAudioRef}
+          autoPlay
+          playsInline
+          className="hidden"
+        />
+      )}
 
     </div>
   );
