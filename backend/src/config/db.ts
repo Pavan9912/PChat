@@ -34,7 +34,11 @@ export const connectDB = async () => {
   } catch (error: any) {
     console.warn(`Local MongoDB connection failed: ${error.message}. Starting MongoMemoryServer fallback...`);
     try {
-      mongod = await MongoMemoryServer.create();
+      mongod = await MongoMemoryServer.create({
+        binary: {
+          version: '7.0.5'
+        }
+      });
       const memoryUri = mongod.getUri();
       console.log(`Starting in-memory MongoDB server at: ${memoryUri}`);
       const conn = await mongoose.connect(memoryUri);
