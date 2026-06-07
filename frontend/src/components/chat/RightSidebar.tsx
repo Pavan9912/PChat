@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
-import { X, User, Image, FileText, Pin, LogOut, Copy, UserCheck, ShieldAlert, UserMinus, Calendar } from 'lucide-react';
+import { X, User, Image, FileText, Pin, LogOut, Copy, UserCheck, ShieldAlert, UserMinus, Calendar, Lock } from 'lucide-react';
 import { RootState } from '../../store';
-import { updateChat, removeChat } from '../../store/slices/chatSlice';
+import { updateChat, removeChat, setActiveChat } from '../../store/slices/chatSlice';
+import { ChatLockModal } from './ChatLockModal';
 
 interface RightSidebarProps {
   onClose: () => void;
@@ -14,9 +15,53 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({ onClose }) => {
   const { user } = useSelector((state: RootState) => state.auth);
 
   const [activeTab, setActiveTab] = useState<'info' | 'media' | 'docs'>('info');
+  
+  // Chat Lock states
+  const [isLockModalOpen, setIsLockModalOpen] = useState(false);
+  const [lockModalMode, setLockModalMode] = useState<'set' | 'verify' | 'disable'>('verify');
+
   const apiHost = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
   if (!activeChat) return null;
+
+  const isChatLocked = activeChat.lockedBy?.includes(user?._id || '') || false;
+
+  const handleToggleLockClick = () => {
+    if (user?.hasChatLockPin) {
+      setLockModalMode('verify');
+    } else {
+      setLockModalMode('set');
+    }
+    setIsLockModalOpen(true);
+  };
+
+  const handleLockSuccess = async (verifiedPin?: string) => {
+    const action = isChatLocked ? 'unlock' : 'lock';
+    try {
+      const res = await fetch(`${apiHost}/api/chats/${activeChat._id}/${action}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${localStorage.getItem('token')}`,
+        },
+        body: JSON.stringify({ pin: verifiedPin }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message);
+
+      dispatch(updateChat(data));
+
+      if (action === 'lock') {
+        dispatch(setActiveChat(null));
+        onClose();
+        alert('Chat locked and hidden successfully.');
+      } else {
+        alert('Chat unlocked successfully.');
+      }
+    } catch (err: any) {
+      alert(err.message || 'Failed to update chat lock status');
+    }
+  };
 
   const getPartnerProfile = () => {
     if (activeChat.isGroupChat) return null;
@@ -306,6 +351,35 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({ onClose }) => {
               </div>
             )}
 
+            {/* Chat Lock Settings */}
+            <div className="p-3 border border-neutral-900 bg-dark-input/10 rounded-xl mt-4 select-none">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-lg bg-emerald-500/10 text-emerald-400 flex items-center justify-center border border-emerald-500/20">
+                    <Lock className="w-4.5 h-4.5" />
+                  </div>
+                  <div>
+                    <span className="text-xs font-semibold text-white block">Lock Chat</span>
+                    <span className="text-[10px] text-dark-secondary block mt-0.5">
+                      Hide this chat using a PIN
+                    </span>
+                  </div>
+                </div>
+                <button
+                  onClick={handleToggleLockClick}
+                  className={`w-10 h-6 rounded-full p-1 transition-colors duration-200 focus:outline-none relative ${
+                    isChatLocked ? 'bg-emerald-500' : 'bg-neutral-800'
+                  }`}
+                >
+                  <div
+                    className={`bg-white w-4 h-4 rounded-full shadow-md transform duration-200 ${
+                      isChatLocked ? 'translate-x-4' : 'translate-x-0'
+                    }`}
+                  />
+                </button>
+              </div>
+            </div>
+
             {/* Action Zone (Leave Group) */}
             {activeChat.isGroupChat && (
               <button
@@ -366,6 +440,12 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({ onClose }) => {
         )}
       </div>
 
+      <ChatLockModal
+        isOpen={isLockModalOpen}
+        onClose={() => setIsLockModalOpen(false)}
+        mode={lockModalMode}
+        onSuccess={handleLockSuccess}
+      />
     </div>
   );
 };

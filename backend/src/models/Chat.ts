@@ -11,6 +11,7 @@ export interface IChat extends Document {
   lastMessage?: Schema.Types.ObjectId;
   isPinnedBy: Schema.Types.ObjectId[];
   isArchivedBy: Schema.Types.ObjectId[];
+  lockedBy: Schema.Types.ObjectId[];
   inviteCode?: string;
   createdAt: Date;
   updatedAt: Date;
@@ -28,6 +29,7 @@ const ChatSchema = new Schema<IChat>(
     lastMessage: { type: Schema.Types.ObjectId, ref: 'Message' },
     isPinnedBy: [{ type: Schema.Types.ObjectId, ref: 'User' }],
     isArchivedBy: [{ type: Schema.Types.ObjectId, ref: 'User' }],
+    lockedBy: [{ type: Schema.Types.ObjectId, ref: 'User' }],
     inviteCode: { type: String, unique: true, sparse: true },
   },
   { timestamps: true }

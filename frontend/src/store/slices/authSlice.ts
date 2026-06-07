@@ -10,6 +10,7 @@ export interface UserProfile {
   statusMessage: string;
   role: 'user' | 'admin';
   isVerified: boolean;
+  hasChatLockPin?: boolean;
 }
 
 interface AuthState {

@@ -55,6 +55,7 @@ export interface IChat {
   lastMessage?: IMessage;
   isPinnedBy: string[];
   isArchivedBy: string[];
+  lockedBy: string[];
   inviteCode?: string;
   createdAt: string;
   updatedAt: string;

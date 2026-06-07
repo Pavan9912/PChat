@@ -14,6 +14,8 @@ import {
   archiveChat,
   unarchiveChat,
   joinGroupByInviteCode,
+  lockChat,
+  unlockChat,
 } from '../controllers/chat.controller';
 import { protect } from '../middleware/auth.middleware';
 import { upload } from '../middleware/upload.middleware';
@@ -35,6 +37,8 @@ router.post('/:chatId/pin', pinChat);
 router.post('/:chatId/unpin', unpinChat);
 router.post('/:chatId/archive', archiveChat);
 router.post('/:chatId/unarchive', unarchiveChat);
+router.post('/:chatId/lock', lockChat);
+router.post('/:chatId/unlock', unlockChat);
 router.post('/join/:inviteCode', joinGroupByInviteCode);
 
 export default router;

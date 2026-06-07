@@ -443,3 +443,108 @@ export const joinGroupByInviteCode = async (req: AuthRequest, res: Response) => 
     return res.status(500).json({ message: 'Internal Server Error' });
   }
 };
+
+// @desc    Lock Chat for current user
+// @route   POST /api/chats/:chatId/lock
+// @access  Private
+export const lockChat = async (req: AuthRequest, res: Response) => {
+  const { chatId } = req.params;
+  const { pin } = req.body;
+
+  if (!req.user) return res.status(401).json({ message: 'Not authenticated' });
+
+  if (!pin) {
+    return res.status(400).json({ message: 'PIN is required to lock chat' });
+  }
+
+  try {
+    const user = await User.findById(req.user._id);
+    if (!user || !user.chatLockPin) {
+      return res.status(400).json({ message: 'Please set up a chat lock PIN first' });
+    }
+
+    const isMatch = await user.compareChatLockPin(pin);
+    if (!isMatch) {
+      return res.status(400).json({ message: 'Invalid PIN' });
+    }
+
+    const chat = await Chat.findById(chatId);
+    if (!chat) return res.status(404).json({ message: 'Chat not found' });
+
+    // Check if user is participant
+    if (!chat.participants.some((p) => p.toString() === req.user!._id.toString())) {
+      return res.status(403).json({ message: 'You are not a participant in this conversation' });
+    }
+
+    if (!chat.lockedBy.includes(req.user._id as any)) {
+      chat.lockedBy.push(req.user._id as any);
+      await chat.save();
+    }
+
+    const fullChat = await Chat.findById(chatId)
+      .populate('participants', 'name username email avatar bio statusMessage isOnline lastSeen')
+      .populate('admins', 'name username email')
+      .populate('creator', 'name username email')
+      .populate({
+        path: 'lastMessage',
+        populate: {
+          path: 'sender',
+          select: 'name username',
+        },
+      });
+
+    return res.status(200).json(fullChat);
+  } catch (error: any) {
+    console.error('Lock chat error:', error);
+    return res.status(500).json({ message: 'Internal Server Error' });
+  }
+};
+
+// @desc    Unlock Chat for current user
+// @route   POST /api/chats/:chatId/unlock
+// @access  Private
+export const unlockChat = async (req: AuthRequest, res: Response) => {
+  const { chatId } = req.params;
+  const { pin } = req.body;
+
+  if (!req.user) return res.status(401).json({ message: 'Not authenticated' });
+
+  if (!pin) {
+    return res.status(400).json({ message: 'PIN is required to unlock chat' });
+  }
+
+  try {
+    const user = await User.findById(req.user._id);
+    if (!user || !user.chatLockPin) {
+      return res.status(400).json({ message: 'Please set up a chat lock PIN first' });
+    }
+
+    const isMatch = await user.compareChatLockPin(pin);
+    if (!isMatch) {
+      return res.status(400).json({ message: 'Invalid PIN' });
+    }
+
+    const chat = await Chat.findById(chatId);
+    if (!chat) return res.status(404).json({ message: 'Chat not found' });
+
+    chat.lockedBy = chat.lockedBy.filter((id) => id.toString() !== req.user!._id.toString());
+    await chat.save();
+
+    const fullChat = await Chat.findById(chatId)
+      .populate('participants', 'name username email avatar bio statusMessage isOnline lastSeen')
+      .populate('admins', 'name username email')
+      .populate('creator', 'name username email')
+      .populate({
+        path: 'lastMessage',
+        populate: {
+          path: 'sender',
+          select: 'name username',
+        },
+      });
+
+    return res.status(200).json(fullChat);
+  } catch (error: any) {
+    console.error('Unlock chat error:', error);
+    return res.status(500).json({ message: 'Internal Server Error' });
+  }
+};

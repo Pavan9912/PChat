@@ -20,9 +20,11 @@ export interface IUser extends Document {
   resetPasswordExpires?: Date;
   googleId?: string;
   facebookId?: string;
+  chatLockPin?: string;
   createdAt: Date;
   updatedAt: Date;
   comparePassword(password: string): Promise<boolean>;
+  compareChatLockPin(pin: string): Promise<boolean>;
 }
 
 const UserSchema = new Schema<IUser>(
@@ -62,6 +64,7 @@ const UserSchema = new Schema<IUser>(
     resetPasswordExpires: { type: Date },
     googleId: { type: String },
     facebookId: { type: String },
+    chatLockPin: { type: String },
   },
   { timestamps: true }
 );
@@ -82,6 +85,12 @@ UserSchema.pre<IUser>('save', async function (next) {
 UserSchema.methods.comparePassword = async function (password: string): Promise<boolean> {
   if (!this.password) return false;
   return bcrypt.compare(password, this.password);
+};
+
+// Compare PIN method
+UserSchema.methods.compareChatLockPin = async function (pin: string): Promise<boolean> {
+  if (!this.chatLockPin) return false;
+  return bcrypt.compare(pin, this.chatLockPin);
 };
 
 export const User = model<IUser>('User', UserSchema);

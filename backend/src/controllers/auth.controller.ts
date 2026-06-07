@@ -34,6 +34,7 @@ export const registerUser = async (req: Request, res: Response) => {
         bio: user.bio,
         role: user.role,
         isVerified: user.isVerified,
+        hasChatLockPin: !!user.chatLockPin,
         token,
       });
     } else {
@@ -76,6 +77,7 @@ export const loginUser = async (req: Request, res: Response) => {
       bio: user.bio,
       role: user.role,
       isVerified: user.isVerified,
+      hasChatLockPin: !!user.chatLockPin,
       token,
     });
   } catch (error: any) {
@@ -131,6 +133,7 @@ export const socialLogin = async (req: Request, res: Response) => {
       bio: user.bio,
       role: user.role,
       isVerified: user.isVerified,
+      hasChatLockPin: !!user.chatLockPin,
       token,
     });
   } catch (error: any) {

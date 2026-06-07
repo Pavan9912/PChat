@@ -1,6 +1,7 @@
 import { Response } from 'express';
 import path from 'path';
 import fs from 'fs';
+import bcrypt from 'bcryptjs';
 import { User } from '../models/User';
 import { AuthRequest } from '../middleware/auth.middleware';
 import { uploadToCloudinary } from '../config/cloudinary';
@@ -18,7 +19,14 @@ export const getUserProfile = async (req: AuthRequest, res: Response) => {
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
-    return res.status(200).json(user);
+    const userObj = user.toObject();
+    const hasChatLockPin = !!userObj.chatLockPin;
+    delete userObj.chatLockPin;
+
+    return res.status(200).json({
+      ...userObj,
+      hasChatLockPin,
+    });
   } catch (error) {
     console.error('Get profile error:', error);
     return res.status(500).json({ message: 'Internal Server Error' });
@@ -64,6 +72,7 @@ export const updateUserProfile = async (req: AuthRequest, res: Response) => {
       statusMessage: updatedUser.statusMessage,
       role: updatedUser.role,
       isVerified: updatedUser.isVerified,
+      hasChatLockPin: !!updatedUser.chatLockPin,
     });
   } catch (error) {
     console.error('Update profile error:', error);
@@ -169,6 +178,109 @@ export const deleteUserAccount = async (req: AuthRequest, res: Response) => {
     return res.status(200).json({ message: 'Account deleted successfully' });
   } catch (error) {
     console.error('Delete account error:', error);
+    return res.status(500).json({ message: 'Internal Server Error' });
+  }
+};
+
+// @desc    Set/Update Chat Lock PIN
+// @route   POST /api/users/chat-lock/pin
+// @access  Private
+export const setChatLockPin = async (req: AuthRequest, res: Response) => {
+  if (!req.user) {
+    return res.status(401).json({ message: 'Not authenticated' });
+  }
+
+  const { pin } = req.body;
+  if (!pin || typeof pin !== 'string' || !/^\d{4}$/.test(pin)) {
+    return res.status(400).json({ message: 'PIN must be a 4-digit number' });
+  }
+
+  try {
+    const user = await User.findById(req.user._id);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    const salt = await bcrypt.genSalt(10);
+    user.chatLockPin = await bcrypt.hash(pin, salt);
+    await user.save();
+
+    return res.status(200).json({ message: 'Chat lock PIN set successfully' });
+  } catch (error) {
+    console.error('Set chat lock PIN error:', error);
+    return res.status(500).json({ message: 'Internal Server Error' });
+  }
+};
+
+// @desc    Verify Chat Lock PIN
+// @route   POST /api/users/chat-lock/verify
+// @access  Private
+export const verifyChatLockPin = async (req: AuthRequest, res: Response) => {
+  if (!req.user) {
+    return res.status(401).json({ message: 'Not authenticated' });
+  }
+
+  const { pin } = req.body;
+  if (!pin || typeof pin !== 'string') {
+    return res.status(400).json({ message: 'PIN is required' });
+  }
+
+  try {
+    const user = await User.findById(req.user._id);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    if (!user.chatLockPin) {
+      return res.status(400).json({ message: 'No chat lock PIN is configured' });
+    }
+
+    const isMatch = await user.compareChatLockPin(pin);
+    if (!isMatch) {
+      return res.status(400).json({ success: false, message: 'Invalid PIN' });
+    }
+
+    return res.status(200).json({ success: true, message: 'PIN verified successfully' });
+  } catch (error) {
+    console.error('Verify chat lock PIN error:', error);
+    return res.status(500).json({ message: 'Internal Server Error' });
+  }
+};
+
+// @desc    Remove Chat Lock PIN
+// @route   DELETE /api/users/chat-lock/pin
+// @access  Private
+export const removeChatLockPin = async (req: AuthRequest, res: Response) => {
+  if (!req.user) {
+    return res.status(401).json({ message: 'Not authenticated' });
+  }
+
+  const { pin } = req.body;
+  if (!pin || typeof pin !== 'string') {
+    return res.status(400).json({ message: 'PIN is required to disable chat lock' });
+  }
+
+  try {
+    const user = await User.findById(req.user._id);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    if (!user.chatLockPin) {
+      return res.status(400).json({ message: 'No chat lock PIN is configured' });
+    }
+
+    const isMatch = await user.compareChatLockPin(pin);
+    if (!isMatch) {
+      return res.status(400).json({ message: 'Invalid PIN' });
+    }
+
+    user.chatLockPin = undefined;
+    await user.save();
+
+    return res.status(200).json({ message: 'Chat lock PIN removed successfully' });
+  } catch (error) {
+    console.error('Remove chat lock PIN error:', error);
     return res.status(500).json({ message: 'Internal Server Error' });
   }
 };

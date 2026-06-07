@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
-import { Search, Pin, Archive, Trash2, ShieldAlert, Check, CheckCheck } from 'lucide-react';
+import { Search, Pin, Archive, Trash2, ShieldAlert, Check, CheckCheck, Lock, Unlock, ArrowLeft } from 'lucide-react';
 import { RootState } from '../../store';
 import { fetchChatsSuccess, fetchChatsFailure, setActiveChat, addChat, updateChat, removeChat } from '../../store/slices/chatSlice';
 import { UserSummary } from '../../store/slices/chatSlice';
+import { ChatLockModal } from '../chat/ChatLockModal';
 
 export const ChatsTab: React.FC = () => {
   const dispatch = useDispatch();
@@ -14,7 +15,32 @@ export const ChatsTab: React.FC = () => {
   const [searchResults, setSearchResults] = useState<UserSummary[]>([]);
   const [isSearching, setIsSearching] = useState(false);
 
+  // Chat Lock states
+  const [showLockedOnly, setShowLockedOnly] = useState(false);
+  const [isLockModalOpen, setIsLockModalOpen] = useState(false);
+  const [lockModalMode, setLockModalMode] = useState<'set' | 'verify' | 'disable'>('verify');
+
   const apiHost = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+
+  // Lock the active chat if it is locked and we exit showLockedOnly mode
+  useEffect(() => {
+    if (!showLockedOnly && activeChat && activeChat.lockedBy?.includes(user?._id || '')) {
+      dispatch(setActiveChat(null));
+    }
+  }, [showLockedOnly, activeChat, user, dispatch]);
+
+  const handleAccessLockedChats = () => {
+    if (user?.hasChatLockPin) {
+      setLockModalMode('verify');
+    } else {
+      setLockModalMode('set');
+    }
+    setIsLockModalOpen(true);
+  };
+
+  const handleLockSuccess = () => {
+    setShowLockedOnly(true);
+  };
 
   // Fetch chats on mount
   useEffect(() => {
@@ -160,8 +186,18 @@ export const ChatsTab: React.FC = () => {
     return <Check className="w-4 h-4 text-dark-secondary shrink-0" />;
   };
 
-  // Filter out archived chats for main list
-  const activeChats = chats.filter((c) => !c.isArchivedBy.includes(user?._id || ''));
+  const lockedChatsCount = chats.filter((c) => c.lockedBy?.includes(user?._id || '')).length;
+
+  // Filter out archived and locked chats for main list, or show locked-only chats
+  const activeChats = chats.filter((c) => {
+    const isArchived = c.isArchivedBy.includes(user?._id || '');
+    const isLocked = c.lockedBy?.includes(user?._id || '');
+    if (showLockedOnly) {
+      return isLocked;
+    }
+    return !isArchived && !isLocked;
+  });
+
   const pinnedChats = activeChats.filter((c) => c.isPinnedBy.includes(user?._id || ''));
   const unpinnedChats = activeChats.filter((c) => !c.isPinnedBy.includes(user?._id || ''));
 
@@ -171,17 +207,31 @@ export const ChatsTab: React.FC = () => {
     <div className="flex flex-col h-full bg-dark-panel">
       {/* Header */}
       <div className="p-4 border-b border-neutral-900">
-        <h1 className="text-xl font-bold text-white mb-4">Chats</h1>
-        <div className="relative">
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search users or messages..."
-            className="w-full pl-10 pr-4 py-2.5 bg-dark-input text-sm text-white rounded-xl focus:outline-none border border-transparent focus:border-dark-accent transition-colors"
-          />
-          <Search className="absolute left-3 top-3 w-4.5 h-4.5 text-dark-secondary" />
+        <div className="flex items-center gap-2 mb-4">
+          {showLockedOnly && (
+            <button
+              onClick={() => setShowLockedOnly(false)}
+              className="p-1 hover:bg-neutral-800 rounded-lg text-slate-300 hover:text-white transition-colors"
+            >
+              <ArrowLeft className="w-5 h-5" />
+            </button>
+          )}
+          <h1 className="text-xl font-bold text-white">
+            {showLockedOnly ? 'Locked Chats' : 'Chats'}
+          </h1>
         </div>
+        {!showLockedOnly && (
+          <div className="relative">
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search users or messages..."
+              className="w-full pl-10 pr-4 py-2.5 bg-dark-input text-sm text-white rounded-xl focus:outline-none border border-transparent focus:border-dark-accent transition-colors"
+            />
+            <Search className="absolute left-3 top-3 w-4.5 h-4.5 text-dark-secondary" />
+          </div>
+        )}
       </div>
 
       {/* Main List */}
@@ -225,6 +275,25 @@ export const ChatsTab: React.FC = () => {
         ) : (
           /* Active chats view */
           <div className="p-2 space-y-0.5">
+            {/* Locked Chats Access Card */}
+            {lockedChatsCount > 0 && !showLockedOnly && (
+              <div
+                onClick={handleAccessLockedChats}
+                className="flex items-center gap-3 p-3 mb-2 rounded-xl bg-slate-900/30 hover:bg-slate-900 border border-neutral-900/80 cursor-pointer transition-colors text-slate-300 group animate-fade-in"
+              >
+                <div className="w-11 h-11 rounded-xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center border border-emerald-500/20 shrink-0">
+                  <Lock className="w-5 h-5 group-hover:scale-110 transition-transform" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="font-semibold text-white text-sm">Locked Chats</div>
+                  <div className="text-[10px] text-dark-secondary mt-0.5">Keep conversations private and secure</div>
+                </div>
+                <span className="bg-emerald-500 text-slate-950 font-bold px-2 py-0.5 rounded-lg text-[10px] shrink-0">
+                  {lockedChatsCount}
+                </span>
+              </div>
+            )}
+
             {sortedChats.length > 0 ? (
               sortedChats.map((chat) => {
                 const meta = getChatMetadata(chat);
@@ -318,6 +387,13 @@ export const ChatsTab: React.FC = () => {
           </div>
         )}
       </div>
+
+      <ChatLockModal
+        isOpen={isLockModalOpen}
+        onClose={() => setIsLockModalOpen(false)}
+        mode={lockModalMode}
+        onSuccess={handleLockSuccess}
+      />
     </div>
   );
 };
