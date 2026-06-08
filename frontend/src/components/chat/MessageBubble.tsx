@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useSelector } from 'react-redux';
-import { MoreVertical, Star, Pin, CornerUpLeft, Edit3, Trash2, Download, Play, Pause } from 'lucide-react';
+import { MoreVertical, Star, Pin, CornerUpLeft, Edit3, Trash2, Download, Play, Pause, AlertTriangle } from 'lucide-react';
 import { RootState } from '../../store';
 import { IMessage } from '../../store/slices/chatSlice';
 
@@ -12,6 +12,7 @@ interface MessageBubbleProps {
   onDelete: (msgId: string, type: 'me' | 'everyone') => void;
   onEdit: (msg: IMessage) => void;
   onReply: (msg: IMessage) => void;
+  onReport: (msgId: string) => void;
 }
 
 export const MessageBubble: React.FC<MessageBubbleProps> = ({
@@ -22,6 +23,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
   onDelete,
   onEdit,
   onReply,
+  onReport,
 }) => {
   const { user } = useSelector((state: RootState) => state.auth);
   const isSelf = msg.sender._id === user?._id;
@@ -338,6 +340,18 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
                   <Trash2 className="w-3.5 h-3.5" />
                   Delete for me
                 </button>
+                {!isSelf && (
+                  <button
+                    onClick={() => {
+                      onReport(msg._id);
+                      setShowDropdown(false);
+                    }}
+                    className="flex items-center gap-2 p-2 hover:bg-amber-500/10 hover:text-amber-400 rounded-lg text-left transition-colors"
+                  >
+                    <AlertTriangle className="w-3.5 h-3.5" />
+                    Report message
+                  </button>
+                )}
               </div>
             )}
           </div>

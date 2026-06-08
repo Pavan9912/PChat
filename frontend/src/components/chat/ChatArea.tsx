@@ -28,6 +28,12 @@ export const ChatArea: React.FC<ChatAreaProps> = ({ onToggleRightSidebar }) => {
   const feedContainerRef = useRef<HTMLDivElement>(null);
   const [showScrollBottom, setShowScrollBottom] = useState(false);
 
+  // Report states
+  const [showReportModal, setShowReportModal] = useState(false);
+  const [reportingMessageId, setReportingMessageId] = useState<string | null>(null);
+  const [reportReason, setReportReason] = useState('Spam / Advertising');
+  const [reportCustomReason, setReportCustomReason] = useState('');
+
   const apiHost = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
   // Load message logs of active chat
@@ -220,6 +226,49 @@ export const ChatArea: React.FC<ChatAreaProps> = ({ onToggleRightSidebar }) => {
     }
   };
 
+  const handleInitiateReport = (msgId: string) => {
+    setReportingMessageId(msgId);
+    setReportReason('Spam / Advertising');
+    setReportCustomReason('');
+    setShowReportModal(true);
+  };
+
+  const handleSubmitReport = async () => {
+    if (!reportingMessageId) return;
+    const finalReason = reportReason === 'Other' ? reportCustomReason : reportReason;
+    if (reportReason === 'Other' && !reportCustomReason.trim()) {
+      alert('Please enter a reason for reporting.');
+      return;
+    }
+
+    try {
+      const res = await fetch(`${apiHost}/api/admin/reports`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${localStorage.getItem('token')}`,
+        },
+        body: JSON.stringify({
+          type: 'message',
+          reportedMessageId: reportingMessageId,
+          reason: finalReason,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        alert('Thank you! The message has been reported to the administrators.');
+      } else {
+        throw new Error(data.message || 'Failed to submit report');
+      }
+    } catch (err: any) {
+      console.error('Report submission failed:', err);
+      alert(err.message || 'Failed to submit report');
+    } finally {
+      setShowReportModal(false);
+      setReportingMessageId(null);
+    }
+  };
+
   // Get typing users lists strings
   const getTypingText = () => {
     if (!activeChat) return '';
@@ -290,6 +339,7 @@ export const ChatArea: React.FC<ChatAreaProps> = ({ onToggleRightSidebar }) => {
                   onDelete={handleDelete}
                   onEdit={(m) => setEditingMessage(m)}
                   onReply={(m) => setReplyingTo(m)}
+                  onReport={handleInitiateReport}
                 />
               ))
             ) : (
@@ -342,6 +392,52 @@ export const ChatArea: React.FC<ChatAreaProps> = ({ onToggleRightSidebar }) => {
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-neutral-900 border border-neutral-800 text-[10px] text-dark-secondary font-bold">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
             Active Session Secure
+          </div>
+        </div>
+      )}
+      {showReportModal && (
+        <div className="absolute inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-dark-panel border border-neutral-800 rounded-2xl w-full max-w-md p-6 shadow-2xl">
+            <h3 className="text-lg font-bold text-white mb-2">Report Message</h3>
+            <p className="text-xs text-dark-secondary mb-4">
+              Please select a reason why you are reporting this message to administrators.
+            </p>
+            <select
+              value={reportReason}
+              onChange={(e) => setReportReason(e.target.value)}
+              className="w-full p-2.5 bg-dark-input text-sm text-white rounded-lg focus:outline-none border border-neutral-800 focus:border-dark-accent mb-4 cursor-pointer"
+            >
+              <option value="Spam / Advertising">Spam / Advertising</option>
+              <option value="Harassment / Hate Speech">Harassment / Hate Speech</option>
+              <option value="Inappropriate Content">Inappropriate Content</option>
+              <option value="Other">Other</option>
+            </select>
+            {reportReason === 'Other' && (
+              <textarea
+                value={reportCustomReason}
+                onChange={(e) => setReportCustomReason(e.target.value)}
+                placeholder="Describe the issue..."
+                rows={3}
+                className="w-full p-2.5 bg-dark-input text-sm text-white rounded-lg focus:outline-none border border-neutral-800 focus:border-dark-accent mb-4 resize-none"
+              />
+            )}
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => {
+                  setShowReportModal(false);
+                  setReportingMessageId(null);
+                }}
+                className="px-4 py-2 hover:bg-neutral-800 text-sm text-dark-secondary hover:text-white rounded-lg transition-colors font-semibold"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSubmitReport}
+                className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg text-sm font-semibold transition-colors shadow-lg"
+              >
+                Submit Report
+              </button>
+            </div>
           </div>
         </div>
       )}
