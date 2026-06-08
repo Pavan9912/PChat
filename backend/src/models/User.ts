@@ -59,7 +59,7 @@ const UserSchema = new Schema<IUser>(
       type: String,
       default: '',
     },
-    bio: { type: String, default: 'Hey there! I am using PVN Chat.' },
+    bio: { type: String, default: 'Hey there! I am using PChatNow.' },
     statusMessage: { type: String, default: '' },
     isOnline: { type: Boolean, default: false },
     lastSeen: { type: Date, default: Date.now },

@@ -73,7 +73,7 @@ app.use('/api/status', statusRoutes);
 
 // Base route for server health check
 app.get('/', (req, res) => {
-  res.status(200).json({ status: 'success', message: 'PVN Chat API Gateway running' });
+  res.status(200).json({ status: 'success', message: 'PChatNow API Gateway running' });
 });
 
 // Error Interceptors
@@ -84,7 +84,7 @@ const PORT = process.env.PORT || 5000;
 
 server.listen(PORT, () => {
   console.log(`========================================`);
-  console.log(`   PVN Chat Server listening on port ${PORT}`);
+  console.log(`   PChatNow Server listening on port ${PORT}`);
   console.log(`   Environment: ${process.env.NODE_ENV || 'development'}`);
   console.log(`========================================`);
 });

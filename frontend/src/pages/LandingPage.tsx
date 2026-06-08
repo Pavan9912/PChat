@@ -27,10 +27,10 @@ export const LandingPage: React.FC = () => {
       <header className="relative z-10 max-w-7xl mx-auto w-full px-6 py-6 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-400 to-teal-500 flex items-center justify-center font-black text-slate-950 text-base tracking-tighter shadow-lg shadow-emerald-500/20">
-            PVN
+            PCN
           </div>
           <span className="text-xl font-bold tracking-tight bg-gradient-to-r from-white to-slate-300 bg-clip-text text-transparent">
-            PVN Chat
+            PChatNow
           </span>
         </div>
         <div className="flex items-center gap-4">
@@ -58,7 +58,7 @@ export const LandingPage: React.FC = () => {
 
         <h1 className="text-5xl md:text-7xl font-extrabold tracking-tight mb-6 animate-fade-in">
           <span className="bg-gradient-to-r from-white via-slate-100 to-slate-400 bg-clip-text text-transparent">
-            PVN Chat
+            PChatNow
           </span>
         </h1>
         <p className="text-2xl md:text-3xl font-light tracking-wide text-emerald-400 mb-8 max-w-2xl animate-fade-in" style={{ animationDelay: '0.1s' }}>
@@ -93,7 +93,7 @@ export const LandingPage: React.FC = () => {
         <div className="max-w-6xl mx-auto px-6">
           <div className="text-center mb-16">
             <h2 className="text-3xl font-bold text-white mb-4">Engaging Chat Experience</h2>
-            <p className="text-slate-400 max-w-xl mx-auto">PVN Chat comes pre-packed with state of the art tools to keep you in sync with colleagues, friends, and family.</p>
+            <p className="text-slate-400 max-w-xl mx-auto">PChatNow comes pre-packed with state of the art tools to keep you in sync with colleagues, friends, and family.</p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
@@ -173,7 +173,7 @@ export const LandingPage: React.FC = () => {
             <div className="flex-1">
               <h3 className="text-2xl md:text-3xl font-bold text-white mb-4">What our users say</h3>
               <p className="text-slate-400 italic mb-6">
-                "PVN Chat completely changed how our development team stays in touch. The voice notes and the instant group calling features feel extremely responsive and premium, and the dark mode is gorgeous."
+                "PChatNow completely changed how our development team stays in touch. The voice notes and the instant group calling features feel extremely responsive and premium, and the dark mode is gorgeous."
               </p>
               <div>
                 <span className="font-bold text-white block">Alex Mercer</span>
@@ -186,7 +186,7 @@ export const LandingPage: React.FC = () => {
                 <div className="relative w-full h-full rounded-2xl border border-slate-800 bg-slate-950 flex flex-col items-center justify-center text-center p-4">
                   <div className="text-3xl font-black text-emerald-400">99.9%</div>
                   <div className="text-xs font-bold text-slate-500 uppercase mt-2">Uptime verified</div>
-                  <div className="text-xl font-bold text-white mt-4">PVN Chat Live</div>
+                  <div className="text-xl font-bold text-white mt-4">PChatNow Live</div>
                 </div>
               </div>
             </div>
@@ -198,8 +198,8 @@ export const LandingPage: React.FC = () => {
       <footer className="relative z-10 border-t border-slate-900 py-10 mt-auto bg-slate-950/60">
         <div className="max-w-6xl mx-auto px-6 flex flex-col sm:flex-row items-center justify-between gap-6 text-sm text-slate-500">
           <div className="flex items-center gap-2">
-            <div className="w-6 h-6 rounded-md bg-emerald-400 flex items-center justify-center text-slate-950 font-black text-[9px] tracking-tighter">PVN</div>
-            <span>PVN Chat &copy; {new Date().getFullYear()}</span>
+            <div className="w-6 h-6 rounded-md bg-emerald-400 flex items-center justify-center text-slate-950 font-black text-[9px] tracking-tighter">PCN</div>
+            <span>PChatNow &copy; {new Date().getFullYear()}</span>
           </div>
           <div className="flex gap-6">
             <a href="#" className="hover:text-slate-300">Privacy Policy</a>

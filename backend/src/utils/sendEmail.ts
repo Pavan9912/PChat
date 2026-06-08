@@ -14,9 +14,9 @@ export const sendEmail = async (options: SendEmailOptions): Promise<void> => {
   const pass = process.env.EMAIL_PASS;
 
   if (!host || !port || !user || !pass) {
-    console.warn('[PVN Chat Email Utility] SMTP credentials not fully configured in env. Fallback to console log.');
+    console.warn('[PChatNow Email Utility] SMTP credentials not fully configured in env. Fallback to console log.');
     console.log(`\n========================================`);
-    console.log(`[PVN Chat Security] Email Simulation`);
+    console.log(`[PChatNow Security] Email Simulation`);
     console.log(`To: ${options.to}`);
     console.log(`Subject: ${options.subject}`);
     console.log(`Body: ${options.text}`);
@@ -35,7 +35,7 @@ export const sendEmail = async (options: SendEmailOptions): Promise<void> => {
   });
 
   const mailOptions = {
-    from: process.env.EMAIL_FROM || `"PVN Chat" <${user}>`,
+    from: process.env.EMAIL_FROM || `"PChatNow" <${user}>`,
     to: options.to,
     subject: options.subject,
     text: options.text,

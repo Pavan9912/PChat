@@ -52,7 +52,7 @@ export const SidebarTabs: React.FC<SidebarTabsProps> = ({ activeTab, setActiveTa
           onClick={() => navigate('/')} 
           className="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-400 to-teal-500 flex items-center justify-center font-black text-slate-950 text-[13px] tracking-tighter cursor-pointer shadow-lg shadow-emerald-500/10 hover:scale-105 transition-transform"
         >
-          PVN
+          PCN
         </div>
 
         {/* Tab Items */}

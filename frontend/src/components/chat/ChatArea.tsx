@@ -387,9 +387,9 @@ export const ChatArea: React.FC<ChatAreaProps> = ({ onToggleRightSidebar }) => {
         /* Empty Welcoming Screen */
         <div className="flex-1 flex flex-col items-center justify-center text-center p-8 bg-dark-bg relative select-none">
           <div className="w-20 h-20 rounded-3xl bg-gradient-to-tr from-emerald-400 to-teal-500 flex items-center justify-center font-black text-slate-950 text-3xl mb-6 shadow-2xl shadow-emerald-500/10 tracking-tighter">
-            PVN
+            PCN
           </div>
-          <h2 className="text-2xl font-bold text-white mb-2">PVN Chat Desktop</h2>
+          <h2 className="text-2xl font-bold text-white mb-2">PChatNow Desktop</h2>
           <p className="text-sm text-dark-secondary max-w-sm mb-6 leading-relaxed">
             Connect. Chat. Instantly. Select an existing conversation or search profiles in the left menu to start messaging.
           </p>

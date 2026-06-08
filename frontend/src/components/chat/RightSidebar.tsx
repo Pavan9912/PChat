@@ -291,7 +291,7 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({ onClose }) => {
                 </div>
                 <div className="flex items-center gap-2 text-xs text-slate-300">
                   <Calendar className="w-4 h-4 text-dark-secondary" />
-                  <span>Joined PVN Chat on {new Date(partner.lastSeen).toLocaleDateString()}</span>
+                  <span>Joined PChatNow on {new Date(partner.lastSeen).toLocaleDateString()}</span>
                 </div>
               </div>
             )}

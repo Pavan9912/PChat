@@ -78,7 +78,7 @@ export const RegisterForm: React.FC = () => {
     <div className="w-full max-w-md bg-dark-panel border border-neutral-800 p-8 rounded-2xl shadow-2xl relative z-10">
       <div className="text-center mb-8">
         <h2 className="text-2xl font-bold tracking-tight text-white mb-2">Create Account</h2>
-        <p className="text-sm text-dark-secondary">Join PVN Chat to start messaging instantly.</p>
+        <p className="text-sm text-dark-secondary">Join PChatNow to start messaging instantly.</p>
       </div>
 
       {/* Signup Method Tabs */}

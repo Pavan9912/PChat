@@ -198,13 +198,13 @@ export const forgotPassword = async (req: Request, res: Response) => {
     // Send password recovery link via real email (falls back to console log simulation)
     await sendEmail({
       to: email,
-      subject: 'PVN Chat Password Reset Request',
-      text: `To reset your PVN Chat account password, please click on the following link or copy-paste it into your browser: ${resetUrl}`,
+      subject: 'PChatNow Password Reset Request',
+      text: `To reset your PChatNow account password, please click on the following link or copy-paste it into your browser: ${resetUrl}`,
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; padding: 25px; border: 1px solid #e5e7eb; border-radius: 12px; background-color: #ffffff;">
           <h2 style="color: #10b981; text-align: center; margin-bottom: 20px; font-weight: bold;">Password Reset Request</h2>
           <p style="color: #4b5563; font-size: 16px;">Hello,</p>
-          <p style="color: #4b5563; font-size: 16px; line-height: 1.5;">You are receiving this email because you (or someone else) requested a password reset for your PVN Chat account.</p>
+          <p style="color: #4b5563; font-size: 16px; line-height: 1.5;">You are receiving this email because you (or someone else) requested a password reset for your PChatNow account.</p>
           <p style="color: #4b5563; font-size: 16px; line-height: 1.5;">Please click the button below to choose a new password. This link will expire in 1 hour:</p>
           <div style="text-align: center; margin: 30px 0;">
             <a href="${resetUrl}" style="background-color: #10b981; color: #ffffff; padding: 12px 24px; text-decoration: none; font-weight: bold; border-radius: 8px; font-size: 16px; display: inline-block;">Reset Password</a>
@@ -325,7 +325,7 @@ export const googleLogin = async (req: Request, res: Response) => {
   try {
     const clientId = process.env.GOOGLE_CLIENT_ID;
     if (!clientId) {
-      console.warn('[PVN Chat Security] GOOGLE_CLIENT_ID not configured in backend env.');
+      console.warn('[PChatNow Security] GOOGLE_CLIENT_ID not configured in backend env.');
     }
 
     // Verify token with Google
