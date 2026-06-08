@@ -2,7 +2,8 @@ import React, { createContext, useContext, useEffect, useState, useRef } from 'r
 import { useSelector, useDispatch } from 'react-redux';
 import { io, Socket } from 'socket.io-client';
 import { RootState } from '../store';
-import { addMessage, updateMessage, setTyping, stopTyping, setUserOnlineStatus } from '../store/slices/chatSlice';
+import { addMessage, updateMessage, setTyping, stopTyping, setUserOnlineStatus, setChatBlockStatus, handleUserBlocked, handleUserUnblocked } from '../store/slices/chatSlice';
+import { updateUserSuccess } from '../store/slices/authSlice';
 import { setFriendOnlineStatus, addFriendRequest, IFriendRequest } from '../store/slices/friendSlice';
 import { addNotification, INotification } from '../store/slices/notificationSlice';
 
@@ -153,6 +154,35 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     // General app alerts notifications
     socketInstance.on('notificationReceived', (notification: INotification) => {
       dispatch(addNotification(notification));
+    });
+
+    // Real-time user block/unblock notifications
+    socketInstance.on('userBlocked', ({ blockerId, blockedId }) => {
+      if (user) {
+        dispatch(handleUserBlocked({ blockerId, blockedId, currentUserId: user._id }));
+        if (blockerId === user._id) {
+          const currentBlocked = user.blockedUsers || [];
+          if (!currentBlocked.includes(blockedId)) {
+            dispatch(updateUserSuccess({
+              ...user,
+              blockedUsers: [...currentBlocked, blockedId]
+            }));
+          }
+        }
+      }
+    });
+
+    socketInstance.on('userUnblocked', ({ blockerId, unblockedId }) => {
+      if (user) {
+        dispatch(handleUserUnblocked({ blockerId, unblockedId, currentUserId: user._id }));
+        if (blockerId === user._id) {
+          const currentBlocked = user.blockedUsers || [];
+          dispatch(updateUserSuccess({
+            ...user,
+            blockedUsers: currentBlocked.filter(id => id !== unblockedId)
+          }));
+        }
+      }
     });
 
     // ----------------------------------------------------

@@ -234,6 +234,13 @@ export const blockUser = async (req: AuthRequest, res: Response) => {
       ],
     });
 
+    // Broadcast block event via Socket.IO
+    const io = req.app.get('socketio');
+    if (io) {
+      io.to(req.user._id.toString()).emit('userBlocked', { blockerId: req.user._id.toString(), blockedId: targetUserId });
+      io.to(targetUserId.toString()).emit('userBlocked', { blockerId: req.user._id.toString(), blockedId: targetUserId });
+    }
+
     return res.status(200).json({ message: 'User blocked successfully', blockedUsers: user.blockedUsers });
   } catch (error) {
     console.error('Block user error:', error);
@@ -254,6 +261,13 @@ export const unblockUser = async (req: AuthRequest, res: Response) => {
 
     user.blockedUsers = user.blockedUsers.filter((id) => id.toString() !== targetUserId);
     await user.save();
+
+    // Broadcast unblock event via Socket.IO
+    const io = req.app.get('socketio');
+    if (io) {
+      io.to(req.user._id.toString()).emit('userUnblocked', { blockerId: req.user._id.toString(), unblockedId: targetUserId });
+      io.to(targetUserId.toString()).emit('userUnblocked', { blockerId: req.user._id.toString(), unblockedId: targetUserId });
+    }
 
     return res.status(200).json({ message: 'User unblocked successfully', blockedUsers: user.blockedUsers });
   } catch (error) {

@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { X, User, Image, FileText, Pin, LogOut, Copy, UserCheck, ShieldAlert, UserMinus, Calendar, Lock } from 'lucide-react';
 import { RootState } from '../../store';
-import { updateChat, removeChat, setActiveChat } from '../../store/slices/chatSlice';
+import { updateChat, removeChat, setActiveChat, setChatBlockStatus } from '../../store/slices/chatSlice';
+import { updateUserSuccess } from '../../store/slices/authSlice';
 import { ChatLockModal } from './ChatLockModal';
 
 interface RightSidebarProps {
@@ -69,6 +70,7 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({ onClose }) => {
   };
 
   const partner = getPartnerProfile();
+  const isPartnerBlocked = user?.blockedUsers?.includes(partner?._id || '') || activeChat.hasBlockedPartner || false;
   const isAdmin = activeChat.isGroupChat && activeChat.admins.some((id) => {
     const stringId = typeof id === 'object' ? (id as any)._id : id;
     return stringId === user?._id;
@@ -132,6 +134,46 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({ onClose }) => {
       }
     } catch (err) {
       console.error('Leave group error:', err);
+    }
+  };
+
+  const handleToggleBlock = async () => {
+    if (!partner) return;
+    const action = isPartnerBlocked ? 'unblock' : 'block';
+    const confirmMsg = isPartnerBlocked
+      ? `Are you sure you want to unblock ${partner.name}?`
+      : `Are you sure you want to block ${partner.name}? They will no longer be able to message you.`;
+
+    if (!confirm(confirmMsg)) return;
+
+    try {
+      const res = await fetch(`${apiHost}/api/friends/${action}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${localStorage.getItem('token')}`,
+        },
+        body: JSON.stringify({ targetUserId: partner._id }),
+      });
+      
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || `Failed to ${action} user`);
+
+      if (user) {
+        dispatch(updateUserSuccess({
+          ...user,
+          blockedUsers: data.blockedUsers || []
+        }));
+      }
+
+      dispatch(setChatBlockStatus({
+        chatId: activeChat._id,
+        hasBlockedPartner: action === 'block'
+      }));
+
+      alert(`User ${action === 'block' ? 'blocked' : 'unblocked'} successfully.`);
+    } catch (err: any) {
+      alert(err.message || `Failed to ${action} user`);
     }
   };
 
@@ -388,6 +430,17 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({ onClose }) => {
               >
                 <LogOut className="w-4 h-4" />
                 Leave Group Chat
+              </button>
+            )}
+
+            {/* Block/Unblock Option */}
+            {!activeChat.isGroupChat && partner && (
+              <button
+                onClick={handleToggleBlock}
+                className="w-full py-2.5 bg-red-500/10 hover:bg-red-500 hover:text-white border border-red-500/20 text-red-400 font-bold rounded-xl text-xs flex items-center justify-center gap-1.5 transition-all mt-4"
+              >
+                <ShieldAlert className="w-4 h-4" />
+                {isPartnerBlocked ? 'Unblock Contact' : 'Block Contact'}
               </button>
             )}
           </div>

@@ -73,6 +73,7 @@ export const updateUserProfile = async (req: AuthRequest, res: Response) => {
       role: updatedUser.role,
       isVerified: updatedUser.isVerified,
       hasChatLockPin: !!updatedUser.chatLockPin,
+      blockedUsers: updatedUser.blockedUsers || [],
     });
   } catch (error) {
     console.error('Update profile error:', error);

@@ -57,6 +57,8 @@ export interface IChat {
   isArchivedBy: string[];
   lockedBy: string[];
   inviteCode?: string;
+  hasBlockedMe?: boolean;
+  hasBlockedPartner?: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -221,6 +223,85 @@ const chatSlice = createSlice({
         });
       }
     },
+    setChatBlockStatus: (
+      state,
+      action: PayloadAction<{ chatId: string; hasBlockedMe?: boolean; hasBlockedPartner?: boolean }>
+    ) => {
+      const { chatId, hasBlockedMe, hasBlockedPartner } = action.payload;
+      state.chats = state.chats.map((chat) => {
+        if (chat._id === chatId) {
+          if (hasBlockedMe !== undefined) chat.hasBlockedMe = hasBlockedMe;
+          if (hasBlockedPartner !== undefined) chat.hasBlockedPartner = hasBlockedPartner;
+        }
+        return chat;
+      });
+      if (state.activeChat && state.activeChat._id === chatId) {
+        if (hasBlockedMe !== undefined) state.activeChat.hasBlockedMe = hasBlockedMe;
+        if (hasBlockedPartner !== undefined) state.activeChat.hasBlockedPartner = hasBlockedPartner;
+      }
+    },
+    handleUserBlocked: (
+      state,
+      action: PayloadAction<{ blockerId: string; blockedId: string; currentUserId: string }>
+    ) => {
+      const { blockerId, blockedId, currentUserId } = action.payload;
+      state.chats = state.chats.map((chat) => {
+        if (!chat.isGroupChat) {
+          const hasBlocker = chat.participants.some((p) => p._id === blockerId);
+          const hasBlocked = chat.participants.some((p) => p._id === blockedId);
+          if (hasBlocker && hasBlocked) {
+            if (blockerId === currentUserId) {
+              chat.hasBlockedPartner = true;
+            } else {
+              chat.hasBlockedMe = true;
+            }
+          }
+        }
+        return chat;
+      });
+      if (state.activeChat && !state.activeChat.isGroupChat) {
+        const hasBlocker = state.activeChat.participants.some((p) => p._id === blockerId);
+        const hasBlocked = state.activeChat.participants.some((p) => p._id === blockedId);
+        if (hasBlocker && hasBlocked) {
+          if (blockerId === currentUserId) {
+            state.activeChat.hasBlockedPartner = true;
+          } else {
+            state.activeChat.hasBlockedMe = true;
+          }
+        }
+      }
+    },
+    handleUserUnblocked: (
+      state,
+      action: PayloadAction<{ blockerId: string; unblockedId: string; currentUserId: string }>
+    ) => {
+      const { blockerId, unblockedId, currentUserId } = action.payload;
+      state.chats = state.chats.map((chat) => {
+        if (!chat.isGroupChat) {
+          const hasBlocker = chat.participants.some((p) => p._id === blockerId);
+          const hasBlocked = chat.participants.some((p) => p._id === unblockedId);
+          if (hasBlocker && hasBlocked) {
+            if (blockerId === currentUserId) {
+              chat.hasBlockedPartner = false;
+            } else {
+              chat.hasBlockedMe = false;
+            }
+          }
+        }
+        return chat;
+      });
+      if (state.activeChat && !state.activeChat.isGroupChat) {
+        const hasBlocker = state.activeChat.participants.some((p) => p._id === blockerId);
+        const hasBlocked = state.activeChat.participants.some((p) => p._id === unblockedId);
+        if (hasBlocker && hasBlocked) {
+          if (blockerId === currentUserId) {
+            state.activeChat.hasBlockedPartner = false;
+          } else {
+            state.activeChat.hasBlockedMe = false;
+          }
+        }
+      }
+    },
   },
 });
 
@@ -240,6 +321,9 @@ export const {
   updateChat,
   removeChat,
   setUserOnlineStatus,
+  setChatBlockStatus,
+  handleUserBlocked,
+  handleUserUnblocked,
 } = chatSlice.actions;
 
 export default chatSlice.reducer;

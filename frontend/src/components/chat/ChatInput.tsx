@@ -1,9 +1,10 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { useSelector } from 'react-redux';
-import { Send, Smile, Paperclip, Mic, Square, X, Image, FileText, Film, Volume2, CornerDownLeft } from 'lucide-react';
+import { useSelector, useDispatch } from 'react-redux';
+import { Send, Smile, Paperclip, Mic, Square, X, Image, FileText, Film, Volume2, CornerDownLeft, ShieldAlert } from 'lucide-react';
 import { RootState } from '../../store';
 import { useSocket } from '../../context/SocketContext';
-import { IMessage } from '../../store/slices/chatSlice';
+import { IMessage, setChatBlockStatus } from '../../store/slices/chatSlice';
+import { updateUserSuccess } from '../../store/slices/authSlice';
 
 interface ChatInputProps {
   onSendMessage: (formData: FormData) => void;
@@ -22,9 +23,15 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   onClearEdit,
   onSendEditedText,
 }) => {
+  const dispatch = useDispatch();
   const { activeChat } = useSelector((state: RootState) => state.chat);
   const { user } = useSelector((state: RootState) => state.auth);
   const { socket } = useSocket();
+
+  const partner = activeChat?.isGroupChat ? null : activeChat?.participants.find((p) => p._id !== user?._id);
+  const hasBlockedMe = activeChat?.hasBlockedMe || false;
+  const hasBlockedPartner = activeChat?.hasBlockedPartner || user?.blockedUsers?.includes(partner?._id || '') || false;
+  const isBlocked = hasBlockedMe || hasBlockedPartner;
 
   const [text, setText] = useState('');
   const [showAttachMenu, setShowAttachMenu] = useState(false);
@@ -213,6 +220,39 @@ export const ChatInput: React.FC<ChatInputProps> = ({
     emitTyping();
   };
 
+  const handleUnblockFromInput = async () => {
+    if (!partner) return;
+    if (!confirm(`Are you sure you want to unblock ${partner.name}?`)) return;
+    try {
+      const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/friends/unblock`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${localStorage.getItem('token')}`,
+        },
+        body: JSON.stringify({ targetUserId: partner._id }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || 'Failed to unblock contact');
+
+      if (user) {
+        dispatch(updateUserSuccess({
+          ...user,
+          blockedUsers: data.blockedUsers || []
+        }));
+      }
+
+      dispatch(setChatBlockStatus({
+        chatId: activeChat!._id,
+        hasBlockedPartner: false
+      }));
+
+      alert('Contact unblocked successfully.');
+    } catch (err: any) {
+      alert(err.message || 'Failed to unblock contact');
+    }
+  };
+
   return (
     <div className="border-t border-neutral-900/60 bg-[#202c33] p-3 flex flex-col gap-2 shrink-0 select-none relative">
       
@@ -252,135 +292,157 @@ export const ChatInput: React.FC<ChatInputProps> = ({
       )}
 
       {/* Main Bar */}
-      <div className="flex items-center gap-2">
-        {/* Attachment Pin toggle */}
-        <div className="relative">
-          <button
-            onClick={() => {
-              setShowAttachMenu(!showAttachMenu);
-              setShowEmojiMenu(false);
-            }}
-            className={`p-2 hover:bg-neutral-800 hover:text-white rounded-xl transition-all ${
-              showAttachMenu ? 'text-white bg-neutral-800' : 'text-dark-secondary'
-            }`}
-          >
-            <Paperclip className="w-5 h-5" />
-          </button>
-
-          {showAttachMenu && (
-            <div className="absolute bottom-full left-0 mb-2 bg-slate-950 border border-neutral-900 rounded-2xl shadow-2xl p-2 flex flex-col gap-1 z-50 min-w-44">
-              <button
-                type="button"
-                onClick={() => triggerAttachment('image/*')}
-                className="flex items-center gap-2.5 p-2.5 hover:bg-neutral-900 rounded-xl text-xs font-semibold text-slate-300 text-left transition-colors"
-              >
-                <Image className="w-4.5 h-4.5 text-emerald-400" />
-                Image Attachment
-              </button>
-              <button
-                type="button"
-                onClick={() => triggerAttachment('video/*')}
-                className="flex items-center gap-2.5 p-2.5 hover:bg-neutral-900 rounded-xl text-xs font-semibold text-slate-300 text-left transition-colors"
-              >
-                <Film className="w-4.5 h-4.5 text-blue-400" />
-                Video Media
-              </button>
-              <button
-                type="button"
-                onClick={() => triggerAttachment('audio/*')}
-                className="flex items-center gap-2.5 p-2.5 hover:bg-neutral-900 rounded-xl text-xs font-semibold text-slate-300 text-left transition-colors"
-              >
-                <Volume2 className="w-4.5 h-4.5 text-indigo-400" />
-                Audio File
-              </button>
-              <button
-                type="button"
-                onClick={() => triggerAttachment('*')}
-                className="flex items-center gap-2.5 p-2.5 hover:bg-neutral-900 rounded-xl text-xs font-semibold text-slate-300 text-left transition-colors"
-              >
-                <FileText className="w-4.5 h-4.5 text-amber-400" />
-                Document File
-              </button>
-            </div>
-          )}
-        </div>
-
-        {/* Emoji smile drawer toggle */}
-        <div className="relative">
-          <button
-            onClick={() => {
-              setShowEmojiMenu(!showEmojiMenu);
-              setShowAttachMenu(false);
-            }}
-            className={`p-2 hover:bg-neutral-800 hover:text-white rounded-xl transition-all ${
-              showEmojiMenu ? 'text-white bg-neutral-800' : 'text-dark-secondary'
-            }`}
-          >
-            <Smile className="w-5 h-5" />
-          </button>
-
-          {showEmojiMenu && (
-            <div className="absolute bottom-full left-0 mb-2 bg-slate-950 border border-neutral-900 rounded-2xl shadow-2xl p-2.5 grid grid-cols-4 gap-1.5 z-50 w-48">
-              {quickEmojis.map((emoji) => (
+      {isBlocked ? (
+        <div className="flex items-center justify-center py-3 px-4 bg-neutral-900/40 border border-neutral-800 rounded-xl text-center text-xs select-none">
+          <span className="text-dark-secondary flex items-center gap-2">
+            <ShieldAlert className="w-4.5 h-4.5 text-red-500" />
+            {hasBlockedPartner ? (
+              <span>
+                You have blocked this contact.{' '}
                 <button
-                  key={emoji}
-                  type="button"
-                  onClick={() => insertEmoji(emoji)}
-                  className="w-9 h-9 rounded-xl hover:bg-neutral-900 text-lg flex items-center justify-center transition-colors"
+                  onClick={handleUnblockFromInput}
+                  className="text-dark-accent font-semibold hover:underline bg-transparent border-none p-0 cursor-pointer transition-colors"
                 >
-                  {emoji}
+                  Unblock
+                </button>{' '}
+                to send messages.
+              </span>
+            ) : (
+              <span>You cannot send messages to this contact because they blocked you.</span>
+            )}
+          </span>
+        </div>
+      ) : (
+        <div className="flex items-center gap-2">
+          {/* Attachment Pin toggle */}
+          <div className="relative">
+            <button
+              onClick={() => {
+                setShowAttachMenu(!showAttachMenu);
+                setShowEmojiMenu(false);
+              }}
+              className={`p-2 hover:bg-neutral-800 hover:text-white rounded-xl transition-all ${
+                showAttachMenu ? 'text-white bg-neutral-800' : 'text-dark-secondary'
+              }`}
+            >
+              <Paperclip className="w-5 h-5" />
+            </button>
+
+            {showAttachMenu && (
+              <div className="absolute bottom-full left-0 mb-2 bg-slate-950 border border-neutral-900 rounded-2xl shadow-2xl p-2 flex flex-col gap-1 z-50 min-w-44">
+                <button
+                  type="button"
+                  onClick={() => triggerAttachment('image/*')}
+                  className="flex items-center gap-2.5 p-2.5 hover:bg-neutral-900 rounded-xl text-xs font-semibold text-slate-300 text-left transition-colors"
+                >
+                  <Image className="w-4.5 h-4.5 text-emerald-400" />
+                  Image Attachment
                 </button>
-              ))}
+                <button
+                  type="button"
+                  onClick={() => triggerAttachment('video/*')}
+                  className="flex items-center gap-2.5 p-2.5 hover:bg-neutral-900 rounded-xl text-xs font-semibold text-slate-300 text-left transition-colors"
+                >
+                  <Film className="w-4.5 h-4.5 text-blue-400" />
+                  Video Media
+                </button>
+                <button
+                  type="button"
+                  onClick={() => triggerAttachment('audio/*')}
+                  className="flex items-center gap-2.5 p-2.5 hover:bg-neutral-900 rounded-xl text-xs font-semibold text-slate-300 text-left transition-colors"
+                >
+                  <Volume2 className="w-4.5 h-4.5 text-indigo-400" />
+                  Audio File
+                </button>
+                <button
+                  type="button"
+                  onClick={() => triggerAttachment('*')}
+                  className="flex items-center gap-2.5 p-2.5 hover:bg-neutral-900 rounded-xl text-xs font-semibold text-slate-300 text-left transition-colors"
+                >
+                  <FileText className="w-4.5 h-4.5 text-amber-400" />
+                  Document File
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* Emoji smile drawer toggle */}
+          <div className="relative">
+            <button
+              onClick={() => {
+                setShowEmojiMenu(!showEmojiMenu);
+                setShowAttachMenu(false);
+              }}
+              className={`p-2 hover:bg-neutral-800 hover:text-white rounded-xl transition-all ${
+                showEmojiMenu ? 'text-white bg-neutral-800' : 'text-dark-secondary'
+              }`}
+            >
+              <Smile className="w-5 h-5" />
+            </button>
+
+            {showEmojiMenu && (
+              <div className="absolute bottom-full left-0 mb-2 bg-slate-950 border border-neutral-900 rounded-2xl shadow-2xl p-2.5 grid grid-cols-4 gap-1.5 z-50 w-48">
+                {quickEmojis.map((emoji) => (
+                  <button
+                    key={emoji}
+                    type="button"
+                    onClick={() => insertEmoji(emoji)}
+                    className="w-9 h-9 rounded-xl hover:bg-neutral-900 text-lg flex items-center justify-center transition-colors"
+                  >
+                    {emoji}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Text Area Input / Recording status panel */}
+          {!isRecording ? (
+            <input
+              type="text"
+              value={text}
+              onChange={handleInputChange}
+              onKeyDown={handleKeyPress}
+              placeholder={editingMessage ? 'Edit your message...' : 'Write a message...'}
+              className="flex-1 px-4 py-2.5 bg-dark-input text-sm text-white rounded-xl focus:outline-none border border-transparent focus:border-dark-accent transition-colors"
+            />
+          ) : (
+            <div className="flex-1 bg-red-500/10 border border-red-500/20 text-red-400 rounded-xl py-2 px-4 flex items-center justify-between text-xs font-bold animate-pulse">
+              <div className="flex items-center gap-2">
+                <Square className="w-3.5 h-3.5 fill-red-500 text-red-500 animate-pulse" />
+                <span>Recording voice note...</span>
+              </div>
+              <span>{formatRecordTime(recordDuration)}</span>
             </div>
           )}
+
+          {/* Voice Note Mic Trigger / Send Button */}
+          {text.trim() || editingMessage ? (
+            <button
+              onClick={handleSend}
+              className="p-3 bg-dark-accent hover:opacity-90 text-slate-950 font-bold rounded-xl transition-all shadow-md shadow-emerald-500/10"
+            >
+              <Send className="w-4.5 h-4.5" />
+            </button>
+          ) : !isRecording ? (
+            <button
+              onClick={handleStartRecord}
+              title="Record Voice Note"
+              className="p-3 bg-neutral-900 hover:bg-neutral-800 text-dark-secondary hover:text-white rounded-xl transition-all"
+            >
+              <Mic className="w-4.5 h-4.5" />
+            </button>
+          ) : (
+            <button
+              onClick={handleStopRecord}
+              title="Stop & Send Voice Note"
+              className="p-3 bg-red-500 hover:bg-red-600 text-white rounded-xl transition-all shadow-md shadow-red-500/10"
+            >
+              <Square className="w-4.5 h-4.5 fill-white" />
+            </button>
+          )}
         </div>
-
-        {/* Text Area Input / Recording status panel */}
-        {!isRecording ? (
-          <input
-            type="text"
-            value={text}
-            onChange={handleInputChange}
-            onKeyDown={handleKeyPress}
-            placeholder={editingMessage ? 'Edit your message...' : 'Write a message...'}
-            className="flex-1 px-4 py-2.5 bg-dark-input text-sm text-white rounded-xl focus:outline-none border border-transparent focus:border-dark-accent transition-colors"
-          />
-        ) : (
-          <div className="flex-1 bg-red-500/10 border border-red-500/20 text-red-400 rounded-xl py-2 px-4 flex items-center justify-between text-xs font-bold animate-pulse">
-            <div className="flex items-center gap-2">
-              <Square className="w-3.5 h-3.5 fill-red-500 text-red-500 animate-pulse" />
-              <span>Recording voice note...</span>
-            </div>
-            <span>{formatRecordTime(recordDuration)}</span>
-          </div>
-        )}
-
-        {/* Voice Note Mic Trigger / Send Button */}
-        {text.trim() || editingMessage ? (
-          <button
-            onClick={handleSend}
-            className="p-3 bg-dark-accent hover:opacity-90 text-slate-950 font-bold rounded-xl transition-all shadow-md shadow-emerald-500/10"
-          >
-            <Send className="w-4.5 h-4.5" />
-          </button>
-        ) : !isRecording ? (
-          <button
-            onClick={handleStartRecord}
-            title="Record Voice Note"
-            className="p-3 bg-neutral-900 hover:bg-neutral-800 text-dark-secondary hover:text-white rounded-xl transition-all"
-          >
-            <Mic className="w-4.5 h-4.5" />
-          </button>
-        ) : (
-          <button
-            onClick={handleStopRecord}
-            title="Stop & Send Voice Note"
-            className="p-3 bg-red-500 hover:bg-red-600 text-white rounded-xl transition-all shadow-md shadow-red-500/10"
-          >
-            <Square className="w-4.5 h-4.5 fill-white" />
-          </button>
-        )}
-      </div>
+      )}
     </div>
   );
 };

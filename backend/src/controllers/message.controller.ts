@@ -39,6 +39,23 @@ export const sendMessage = async (req: AuthRequest, res: Response) => {
       return res.status(403).json({ message: 'You are not a member of this chat' });
     }
 
+    // Block check for direct chats
+    if (!chat.isGroupChat) {
+      const partnerId = chat.participants.find((id) => id.toString() !== req.user!._id.toString());
+      if (partnerId) {
+        const partner = await User.findById(partnerId);
+        const currentUser = await User.findById(req.user!._id);
+        if (partner && currentUser) {
+          if (partner.blockedUsers.some((id) => id.toString() === currentUser._id.toString())) {
+            return res.status(403).json({ message: 'You cannot send messages to this contact because they blocked you.' });
+          }
+          if (currentUser.blockedUsers.some((id) => id.toString() === partner._id.toString())) {
+            return res.status(403).json({ message: 'You have blocked this contact. Unblock to send messages.' });
+          }
+        }
+      }
+    }
+
     let messageData: any = {
       sender: req.user._id,
       chat: chatId,

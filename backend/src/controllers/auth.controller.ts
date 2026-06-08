@@ -35,6 +35,7 @@ export const registerUser = async (req: Request, res: Response) => {
         role: user.role,
         isVerified: user.isVerified,
         hasChatLockPin: !!user.chatLockPin,
+        blockedUsers: user.blockedUsers || [],
         token,
       });
     } else {
@@ -78,6 +79,7 @@ export const loginUser = async (req: Request, res: Response) => {
       role: user.role,
       isVerified: user.isVerified,
       hasChatLockPin: !!user.chatLockPin,
+      blockedUsers: user.blockedUsers || [],
       token,
     });
   } catch (error: any) {
@@ -134,6 +136,7 @@ export const socialLogin = async (req: Request, res: Response) => {
       role: user.role,
       isVerified: user.isVerified,
       hasChatLockPin: !!user.chatLockPin,
+      blockedUsers: user.blockedUsers || [],
       token,
     });
   } catch (error: any) {

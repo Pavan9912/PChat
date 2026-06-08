@@ -11,6 +11,7 @@ export interface UserProfile {
   role: 'user' | 'admin';
   isVerified: boolean;
   hasChatLockPin?: boolean;
+  blockedUsers?: string[];
 }
 
 interface AuthState {
