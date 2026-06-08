@@ -23,12 +23,14 @@ interface SocketContextType {
   remoteStream: MediaStream | null;
   isMuted: boolean;
   isVideoOff: boolean;
+  facingMode: 'user' | 'environment';
   initiateCall: (targetUserId: string, callerName: string, callerAvatar: string, chatId: string, type: 'voice' | 'video') => void;
   acceptCall: () => void;
   rejectCall: () => void;
   endCall: () => void;
   toggleMute: () => void;
   toggleVideo: () => void;
+  switchCamera: () => void;
 }
 
 const SocketContext = createContext<SocketContextType | undefined>(undefined);
@@ -85,6 +87,7 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
   const [isMuted, setIsMuted] = useState(false);
   const [isVideoOff, setIsVideoOff] = useState(false);
+  const [facingMode, setFacingMode] = useState<'user' | 'environment'>('user');
 
   const peerConnectionRef = useRef<RTCPeerConnection | null>(null);
   const localStreamRef = useRef<MediaStream | null>(null);
@@ -250,6 +253,7 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     setRemoteStream(null);
     setIsMuted(false);
     setIsVideoOff(false);
+    setFacingMode('user');
   };
 
   const processQueuedCandidates = async () => {
@@ -268,11 +272,12 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }
   };
 
-  const getMediaStream = async (type: 'voice' | 'video'): Promise<MediaStream | null> => {
+  const getMediaStream = async (type: 'voice' | 'video', customFacingMode?: 'user' | 'environment'): Promise<MediaStream | null> => {
     try {
+      const activeFacingMode = customFacingMode || facingMode;
       const constraints = {
         audio: true,
-        video: type === 'video' ? { width: 640, height: 480 } : false,
+        video: type === 'video' ? { facingMode: activeFacingMode, width: 640, height: 480 } : false,
       };
       const stream = await navigator.mediaDevices.getUserMedia(constraints);
       localStreamRef.current = stream;
@@ -443,6 +448,45 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }
   };
 
+  const switchCamera = async () => {
+    if (callInfo.callType !== 'video') return;
+    const newFacingMode = facingMode === 'user' ? 'environment' : 'user';
+    setFacingMode(newFacingMode);
+
+    if (localStreamRef.current) {
+      const videoTrack = localStreamRef.current.getVideoTracks()[0];
+      if (videoTrack) {
+        videoTrack.stop();
+
+        try {
+          const constraints = {
+            audio: false,
+            video: { facingMode: newFacingMode, width: 640, height: 480 },
+          };
+          const newStream = await navigator.mediaDevices.getUserMedia(constraints);
+          const newVideoTrack = newStream.getVideoTracks()[0];
+
+          if (newVideoTrack) {
+            localStreamRef.current.removeTrack(videoTrack);
+            localStreamRef.current.addTrack(newVideoTrack);
+            setLocalStream(new MediaStream(localStreamRef.current.getTracks()));
+
+            if (peerConnectionRef.current) {
+              const senders = peerConnectionRef.current.getSenders();
+              const videoSender = senders.find((s) => s.track && s.track.kind === 'video');
+              if (videoSender) {
+                await videoSender.replaceTrack(newVideoTrack);
+              }
+            }
+          }
+        } catch (err) {
+          console.error('Failed to switch camera:', err);
+          alert('Could not switch camera. Check if device has multiple cameras.');
+        }
+      }
+    }
+  };
+
   return (
     <SocketContext.Provider
       value={{
@@ -452,12 +496,14 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         remoteStream,
         isMuted,
         isVideoOff,
+        facingMode,
         initiateCall,
         acceptCall,
         rejectCall,
         endCall,
         toggleMute,
         toggleVideo,
+        switchCamera,
       }}
     >
       {children}

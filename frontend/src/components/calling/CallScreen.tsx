@@ -1,5 +1,5 @@
-import React, { useEffect, useRef } from 'react';
-import { Phone, PhoneOff, Mic, MicOff, Video, VideoOff, Volume2 } from 'lucide-react';
+import React, { useEffect, useRef, useState } from 'react';
+import { Phone, PhoneOff, Mic, MicOff, Video, VideoOff, Volume2, RotateCw, RefreshCw } from 'lucide-react';
 import { useSocket } from '../../context/SocketContext';
 
 export const CallScreen: React.FC = () => {
@@ -14,7 +14,10 @@ export const CallScreen: React.FC = () => {
     endCall,
     toggleMute,
     toggleVideo,
+    switchCamera,
   } = useSocket();
+
+  const [rotation, setRotation] = useState<number>(0);
 
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const remoteVideoRef = useRef<HTMLVideoElement>(null);
@@ -93,7 +96,8 @@ export const CallScreen: React.FC = () => {
                   ref={remoteVideoRef}
                   autoPlay
                   playsInline
-                  className="w-full h-full object-cover"
+                  className="w-full h-full object-cover transition-transform duration-300"
+                  style={{ transform: `rotate(${rotation}deg)` }}
                 />
               ) : (
                 <div className="flex flex-col items-center justify-center gap-3 text-dark-secondary">
@@ -186,6 +190,28 @@ export const CallScreen: React.FC = () => {
             }`}
           >
             {isVideoOff ? <VideoOff className="w-6 h-6" /> : <Video className="w-6 h-6" />}
+          </button>
+        )}
+
+        {/* Switch Camera (Flip) */}
+        {isConnected && callInfo.callType === 'video' && (
+          <button
+            onClick={switchCamera}
+            title="Switch/Flip Camera"
+            className="p-4 rounded-2xl hover:scale-105 border transition-all bg-neutral-900 border-neutral-800 text-dark-secondary hover:text-white"
+          >
+            <RefreshCw className="w-6 h-6" />
+          </button>
+        )}
+
+        {/* Rotate Video */}
+        {isConnected && callInfo.callType === 'video' && (
+          <button
+            onClick={() => setRotation((prev) => (prev + 90) % 360)}
+            title="Rotate Video View"
+            className="p-4 rounded-2xl hover:scale-105 border transition-all bg-neutral-900 border-neutral-800 text-dark-secondary hover:text-white"
+          >
+            <RotateCw className="w-6 h-6" />
           </button>
         )}
 
