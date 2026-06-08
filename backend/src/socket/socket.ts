@@ -13,9 +13,13 @@ export const getReceiverSockets = (userId: string): string[] => {
 };
 
 export const initSocket = (server: HttpServer): Server => {
+  const allowedOrigins = process.env.CLIENT_URL
+    ? process.env.CLIENT_URL.split(',').map(url => url.trim())
+    : ['http://localhost:5173'];
+
   const io = new Server(server, {
     cors: {
-      origin: process.env.CLIENT_URL || 'http://localhost:5173',
+      origin: allowedOrigins,
       credentials: true,
       methods: ['GET', 'POST'],
     },
