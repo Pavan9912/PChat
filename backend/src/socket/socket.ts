@@ -71,9 +71,10 @@ export const initSocket = (server: HttpServer): Server => {
       
       // Update online status in database
       try {
-        await User.findByIdAndUpdate(userId, { isOnline: true });
+        const fullUser = await User.findByIdAndUpdate(userId, { isOnline: true }, { new: true })
+          .select('name username email avatar bio statusMessage isOnline lastSeen');
         // Broadcast online status to all sockets
-        io.emit('userStatus', { userId, isOnline: true });
+        io.emit('userStatus', { userId, isOnline: true, user: fullUser || undefined });
       } catch (error) {
         console.error(`Failed to update online status for user ${userId}:`, error);
       }
@@ -206,12 +207,18 @@ export const initSocket = (server: HttpServer): Server => {
           
           // Set offline status in DB
           try {
-            await User.findByIdAndUpdate(userId, {
+            const fullUser = await User.findByIdAndUpdate(userId, {
               isOnline: false,
               lastSeen: new Date(),
-            });
+            }, { new: true })
+              .select('name username email avatar bio statusMessage isOnline lastSeen');
             // Broadcast offline status
-            io.emit('userStatus', { userId, isOnline: false, lastSeen: new Date() });
+            io.emit('userStatus', {
+              userId,
+              isOnline: false,
+              lastSeen: fullUser?.lastSeen || new Date(),
+              user: fullUser || undefined,
+            });
           } catch (error) {
             console.error(`Failed to update offline status for user ${userId}:`, error);
           }

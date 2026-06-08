@@ -392,17 +392,22 @@ export const FriendsTab: React.FC<FriendsTabProps> = ({ setActiveTab }) => {
                       className="flex items-center justify-between p-3 hover:bg-dark-panelHover/40 rounded-xl"
                     >
                       <div className="flex items-center gap-3">
-                        {userRes.avatar ? (
-                          <img
-                            src={userRes.avatar.startsWith('/') ? `${apiHost}${userRes.avatar}` : userRes.avatar}
-                            alt={userRes.name}
-                            className="w-11 h-11 rounded-xl object-cover"
-                          />
-                        ) : (
-                          <div className="w-11 h-11 rounded-xl bg-neutral-800 flex items-center justify-center font-bold text-white uppercase text-sm">
-                            {userRes.name.charAt(0)}
-                          </div>
-                        )}
+                        <div className="relative">
+                          {userRes.avatar ? (
+                            <img
+                              src={userRes.avatar.startsWith('/') ? `${apiHost}${userRes.avatar}` : userRes.avatar}
+                              alt={userRes.name}
+                              className="w-11 h-11 rounded-xl object-cover"
+                            />
+                          ) : (
+                            <div className="w-11 h-11 rounded-xl bg-neutral-800 flex items-center justify-center font-bold text-white uppercase text-sm">
+                              {userRes.name.charAt(0)}
+                            </div>
+                          )}
+                          {userRes.isOnline && (
+                            <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-500 rounded-full border-2 border-slate-900" />
+                          )}
+                        </div>
                         <div>
                           <div className="font-semibold text-sm text-white">{userRes.name}</div>
                           <div className="text-xs text-dark-secondary">@{userRes.username}</div>

@@ -331,17 +331,22 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({ onClose }) => {
                     return (
                       <div key={m._id} className="flex items-center justify-between p-1.5 rounded hover:bg-neutral-900/40">
                         <div className="flex items-center gap-2 min-w-0">
-                          {m.avatar ? (
-                            <img
-                              src={m.avatar.startsWith('/') ? `${apiHost}${m.avatar}` : m.avatar}
-                              alt={m.name}
-                              className="w-7.5 h-7.5 rounded-lg object-cover"
-                            />
-                          ) : (
-                            <div className="w-7.5 h-7.5 rounded-lg bg-neutral-800 flex items-center justify-center font-bold text-white uppercase text-[10px]">
-                              {m.name.charAt(0)}
-                            </div>
-                          )}
+                          <div className="relative shrink-0">
+                            {m.avatar ? (
+                              <img
+                                src={m.avatar.startsWith('/') ? `${apiHost}${m.avatar}` : m.avatar}
+                                alt={m.name}
+                                className="w-7.5 h-7.5 rounded-lg object-cover"
+                              />
+                            ) : (
+                              <div className="w-7.5 h-7.5 rounded-lg bg-neutral-800 flex items-center justify-center font-bold text-white uppercase text-[10px]">
+                                {m.name.charAt(0)}
+                              </div>
+                            )}
+                            {m.isOnline && (
+                              <span className="absolute -bottom-0.5 -right-0.5 w-2 h-2 bg-emerald-500 rounded-full border border-slate-900 shadow-md" />
+                            )}
+                          </div>
                           <div className="min-w-0">
                             <span className="text-xs text-white font-semibold truncate block max-w-28">{m.name}</span>
                             {isMemberAdmin && <span className="text-[9px] text-dark-accent block mt-0.5">Admin</span>}

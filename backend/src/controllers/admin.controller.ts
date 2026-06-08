@@ -1,8 +1,33 @@
 import { Request, Response } from 'express';
+import mongoose from 'mongoose';
 import { User } from '../models/User';
-import { Message } from '../models/Message';
+import { Message, getUserMessageModel } from '../models/Message';
 import { Chat } from '../models/Chat';
 import { Report } from '../models/Report';
+
+const getUniqueMessagesCount = async (timeFilter?: Date): Promise<number> => {
+  try {
+    const db = mongoose.connection.db;
+    if (!db) return 0;
+    const collections = await db.listCollections().toArray();
+    const msgCollections = collections.filter(c => c.name.startsWith('messages_user_'));
+    const uniqueIds = new Set<string>();
+    
+    for (const col of msgCollections) {
+      const partUserId = col.name.replace('messages_user_', '');
+      const modelInstance = getUserMessageModel(partUserId);
+      const query = timeFilter ? { createdAt: { $gte: timeFilter } } : {};
+      const msgs = await modelInstance.find(query, { _id: 1 });
+      for (const msg of msgs) {
+        uniqueIds.add(msg._id.toString());
+      }
+    }
+    return uniqueIds.size;
+  } catch (error) {
+    console.error('Error counting unique messages:', error);
+    return 0;
+  }
+};
 
 // @desc    Get Admin Analytics Overview
 // @route   GET /api/admin/analytics
@@ -11,7 +36,7 @@ export const getAnalytics = async (req: Request, res: Response) => {
   try {
     const totalUsers = await User.countDocuments();
     const onlineUsers = await User.countDocuments({ isOnline: true });
-    const totalMessages = await Message.countDocuments();
+    const totalMessages = await getUniqueMessagesCount();
     const totalGroups = await Chat.countDocuments({ isGroupChat: true });
     const pendingReports = await Report.countDocuments({ status: 'pending' });
 
@@ -19,7 +44,7 @@ export const getAnalytics = async (req: Request, res: Response) => {
     const sevenDaysAgo = new Date();
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
     const newUsersLastWeek = await User.countDocuments({ createdAt: { $gte: sevenDaysAgo } });
-    const newMessagesLastWeek = await Message.countDocuments({ createdAt: { $gte: sevenDaysAgo } });
+    const newMessagesLastWeek = await getUniqueMessagesCount(sevenDaysAgo);
 
     return res.status(200).json({
       totalUsers,
@@ -126,7 +151,7 @@ export const createReport = async (req: any, res: Response) => {
   if (!reason) return res.status(400).json({ message: 'Reason is required' });
 
   try {
-    const report = await Report.create({
+    const reportData: any = {
       reporter: req.user._id,
       type,
       reportedUser: reportedUserId || undefined,
@@ -134,7 +159,13 @@ export const createReport = async (req: any, res: Response) => {
       reportedMessage: reportedMessageId || undefined,
       reason,
       status: 'pending',
-    });
+    };
+
+    if (type === 'message' && reportedMessageId) {
+      reportData.reportedMessageModelName = `messages_user_${req.user._id}`;
+    }
+
+    const report = await Report.create(reportData);
 
     return res.status(201).json({ message: 'Report submitted successfully', report });
   } catch (error: any) {
@@ -199,21 +230,43 @@ export const deleteReportedContent = async (req: Request, res: Response) => {
       return res.status(404).json({ message: 'Report not found' });
     }
 
-    if (report.type === 'message' && report.reportedMessage) {
-      // Delete the message
-      const message = await Message.findById(report.reportedMessage);
+    if (report.type === 'message' && report.reportedMessage && report.reportedMessageModelName) {
+      // Find the message in the reported collection (e.g. messages_user_reporterId)
+      const reporterUserId = report.reportedMessageModelName.replace('messages_user_', '');
+      const userModel = getUserMessageModel(reporterUserId);
+      const message = await userModel.findById(report.reportedMessage);
       if (message) {
-        message.deletedEveryone = true;
-        message.content = 'This message was deleted by administration moderators';
-        message.mediaUrl = undefined;
-        message.fileName = undefined;
-        message.fileSize = undefined;
-        await message.save();
+        // Find the chat to get all participants
+        const chat = await Chat.findById(message.chat);
+        if (chat) {
+          // Delete/mark deleted in all participants' collections
+          for (const participantId of chat.participants) {
+            const partModel = getUserMessageModel(participantId.toString());
+            await partModel.findByIdAndUpdate(message._id, {
+              deletedEveryone: true,
+              content: 'This message was deleted by administration moderators',
+              mediaUrl: undefined,
+              mediaPublicId: undefined,
+              fileName: undefined,
+              fileSize: undefined,
+            });
+          }
+        }
       }
     } else if (report.type === 'group' && report.reportedGroup) {
       // Delete the group
       await Chat.findByIdAndDelete(report.reportedGroup);
-      await Message.deleteMany({ chat: report.reportedGroup });
+      // Delete messages of this group from all users' collections
+      const db = mongoose.connection.db;
+      if (db) {
+        const collections = await db.listCollections().toArray();
+        const msgCollections = collections.filter(c => c.name.startsWith('messages_user_'));
+        for (const col of msgCollections) {
+          const partUserId = col.name.replace('messages_user_', '');
+          const partModel = getUserMessageModel(partUserId);
+          await partModel.deleteMany({ chat: report.reportedGroup });
+        }
+      }
     }
 
     report.status = 'resolved';

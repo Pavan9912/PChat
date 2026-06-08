@@ -79,6 +79,8 @@ interface ChatState {
   totalPages: number;
   currentPage: number;
   error: string | null;
+  onlineUsersList: UserSummary[];
+  onlineUsersCount: number;
 }
 
 const initialState: ChatState = {
@@ -91,6 +93,8 @@ const initialState: ChatState = {
   totalPages: 1,
   currentPage: 1,
   error: null,
+  onlineUsersList: [],
+  onlineUsersCount: 0,
 };
 
 const chatSlice = createSlice({
@@ -201,11 +205,15 @@ const chatSlice = createSlice({
         state.messages = [];
       }
     },
+    setOnlineUsersData: (state, action: PayloadAction<{ onlineCount: number; users: UserSummary[] }>) => {
+      state.onlineUsersList = action.payload.users;
+      state.onlineUsersCount = action.payload.onlineCount;
+    },
     setUserOnlineStatus: (
       state,
-      action: PayloadAction<{ userId: string; isOnline: boolean; lastSeen?: string }>
+      action: PayloadAction<{ userId: string; isOnline: boolean; lastSeen?: string; user?: UserSummary }>
     ) => {
-      const { userId, isOnline, lastSeen } = action.payload;
+      const { userId, isOnline, lastSeen, user } = action.payload;
       state.chats.forEach((chat) => {
         chat.participants.forEach((p) => {
           if (p._id === userId) {
@@ -221,6 +229,36 @@ const chatSlice = createSlice({
             if (lastSeen) p.lastSeen = lastSeen;
           }
         });
+      }
+
+      // Update onlineUsersList
+      const index = state.onlineUsersList.findIndex((item) => item._id === userId);
+      if (index > -1) {
+        const wasOnline = state.onlineUsersList[index].isOnline;
+        state.onlineUsersList[index] = {
+          ...state.onlineUsersList[index],
+          ...(user || {}),
+          isOnline,
+          lastSeen: lastSeen || state.onlineUsersList[index].lastSeen || new Date().toISOString(),
+        };
+
+        if (isOnline && !wasOnline) {
+          state.onlineUsersCount += 1;
+        } else if (!isOnline && wasOnline) {
+          state.onlineUsersCount = Math.max(0, state.onlineUsersCount - 1);
+        }
+      } else {
+        if (isOnline) {
+          const u = user || (state.chats.flatMap(c => c.participants).find(p => p._id === userId));
+          if (u) {
+            state.onlineUsersList.push({
+              ...u,
+              isOnline: true,
+              lastSeen: lastSeen || new Date().toISOString(),
+            });
+            state.onlineUsersCount += 1;
+          }
+        }
       }
     },
     setChatBlockStatus: (
@@ -320,6 +358,7 @@ export const {
   addChat,
   updateChat,
   removeChat,
+  setOnlineUsersData,
   setUserOnlineStatus,
   setChatBlockStatus,
   handleUserBlocked,

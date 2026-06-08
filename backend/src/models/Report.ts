@@ -6,6 +6,7 @@ export interface IReport extends Document {
   reportedUser?: Schema.Types.ObjectId;
   reportedGroup?: Schema.Types.ObjectId;
   reportedMessage?: Schema.Types.ObjectId;
+  reportedMessageModelName?: string;
   reason: string;
   status: 'pending' | 'resolved';
   createdAt: Date;
@@ -18,7 +19,8 @@ const ReportSchema = new Schema<IReport>(
     type: { type: String, enum: ['user', 'group', 'message'], required: true },
     reportedUser: { type: Schema.Types.ObjectId, ref: 'User' },
     reportedGroup: { type: Schema.Types.ObjectId, ref: 'Chat' },
-    reportedMessage: { type: Schema.Types.ObjectId, ref: 'Message' },
+    reportedMessage: { type: Schema.Types.ObjectId, refPath: 'reportedMessageModelName' },
+    reportedMessageModelName: { type: String },
     reason: { type: String, required: true },
     status: { type: String, enum: ['pending', 'resolved'], default: 'pending' },
   },

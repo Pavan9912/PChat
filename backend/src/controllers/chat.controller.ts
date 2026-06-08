@@ -4,6 +4,7 @@ import { Chat } from '../models/Chat';
 import { User } from '../models/User';
 import { AuthRequest } from '../middleware/auth.middleware';
 import { uploadToCloudinary } from '../config/cloudinary';
+import { populateChatsLastMessage, populateChatLastMessage } from '../models/Message';
 
 const formatChatWithBlockStatus = (chat: any, currentUserId: any) => {
   if (!chat) return null;
@@ -51,11 +52,11 @@ export const createChat = async (req: AuthRequest, res: Response) => {
       isGroupChat: false,
       participants: { $all: [req.user._id, recipientId] },
     })
-      .populate('participants', 'name username email avatar bio statusMessage isOnline lastSeen blockedUsers')
-      .populate('lastMessage');
+      .populate('participants', 'name username email avatar bio statusMessage isOnline lastSeen blockedUsers');
 
     if (chat) {
-      return res.status(200).json(formatChatWithBlockStatus(chat, req.user._id));
+      const chatWithLastMessage = await populateChatLastMessage(chat, req.user._id.toString());
+      return res.status(200).json(formatChatWithBlockStatus(chatWithLastMessage, req.user._id));
     }
 
     // Create new 1-on-1 chat
@@ -70,7 +71,8 @@ export const createChat = async (req: AuthRequest, res: Response) => {
       'name username email avatar bio statusMessage isOnline lastSeen blockedUsers'
     );
 
-    return res.status(201).json(formatChatWithBlockStatus(fullChat, req.user._id));
+    const chatWithLastMessage = await populateChatLastMessage(fullChat, req.user._id.toString());
+    return res.status(201).json(formatChatWithBlockStatus(chatWithLastMessage, req.user._id));
   } catch (error: any) {
     console.error('Create direct chat error:', error);
     return res.status(500).json({ message: 'Internal Server Error' });
@@ -131,16 +133,10 @@ export const getChats = async (req: AuthRequest, res: Response) => {
       .populate('participants', 'name username email avatar bio statusMessage isOnline lastSeen blockedUsers')
       .populate('admins', 'name username email')
       .populate('creator', 'name username email')
-      .populate({
-        path: 'lastMessage',
-        populate: {
-          path: 'sender',
-          select: 'name username',
-        },
-      })
       .sort({ updatedAt: -1 });
 
-    const formattedChats = chats.map((chat) => formatChatWithBlockStatus(chat, req.user!._id));
+    const populatedChats = await populateChatsLastMessage(chats, req.user._id.toString());
+    const formattedChats = populatedChats.map((chat) => formatChatWithBlockStatus(chat, req.user!._id));
     return res.status(200).json(formattedChats);
   } catch (error: any) {
     console.error('Get chats error:', error);
@@ -169,7 +165,8 @@ export const getChatDetails = async (req: AuthRequest, res: Response) => {
       return res.status(403).json({ message: 'You are not a participant in this conversation' });
     }
 
-    return res.status(200).json(formatChatWithBlockStatus(chat, req.user._id));
+    const chatWithLastMessage = await populateChatLastMessage(chat, req.user._id.toString());
+    return res.status(200).json(formatChatWithBlockStatus(chatWithLastMessage, req.user._id));
   } catch (error: any) {
     console.error('Get chat details error:', error);
     return res.status(500).json({ message: 'Internal Server Error' });
@@ -514,16 +511,10 @@ export const lockChat = async (req: AuthRequest, res: Response) => {
     const fullChat = await Chat.findById(chatId)
       .populate('participants', 'name username email avatar bio statusMessage isOnline lastSeen blockedUsers')
       .populate('admins', 'name username email')
-      .populate('creator', 'name username email')
-      .populate({
-        path: 'lastMessage',
-        populate: {
-          path: 'sender',
-          select: 'name username',
-        },
-      });
+      .populate('creator', 'name username email');
 
-    return res.status(200).json(formatChatWithBlockStatus(fullChat, req.user._id));
+    const chatWithLastMessage = await populateChatLastMessage(fullChat, req.user._id.toString());
+    return res.status(200).json(formatChatWithBlockStatus(chatWithLastMessage, req.user._id));
   } catch (error: any) {
     console.error('Lock chat error:', error);
     return res.status(500).json({ message: 'Internal Server Error' });
@@ -563,16 +554,10 @@ export const unlockChat = async (req: AuthRequest, res: Response) => {
     const fullChat = await Chat.findById(chatId)
       .populate('participants', 'name username email avatar bio statusMessage isOnline lastSeen blockedUsers')
       .populate('admins', 'name username email')
-      .populate('creator', 'name username email')
-      .populate({
-        path: 'lastMessage',
-        populate: {
-          path: 'sender',
-          select: 'name username',
-        },
-      });
+      .populate('creator', 'name username email');
 
-    return res.status(200).json(formatChatWithBlockStatus(fullChat, req.user._id));
+    const chatWithLastMessage = await populateChatLastMessage(fullChat, req.user._id.toString());
+    return res.status(200).json(formatChatWithBlockStatus(chatWithLastMessage, req.user._id));
   } catch (error: any) {
     console.error('Unlock chat error:', error);
     return res.status(500).json({ message: 'Internal Server Error' });

@@ -1,5 +1,6 @@
 import { Response } from 'express';
-import { Message } from '../models/Message';
+import mongoose from 'mongoose';
+import { Message, getUserMessageModel } from '../models/Message';
 import { Chat } from '../models/Chat';
 import { User } from '../models/User';
 import { AuthRequest } from '../middleware/auth.middleware';
@@ -56,7 +57,9 @@ export const sendMessage = async (req: AuthRequest, res: Response) => {
       }
     }
 
+    const messageId = new mongoose.Types.ObjectId();
     let messageData: any = {
+      _id: messageId,
       sender: req.user._id,
       chat: chatId,
       content: content || '',
@@ -89,10 +92,22 @@ export const sendMessage = async (req: AuthRequest, res: Response) => {
       }
     }
 
-    const message = await Message.create(messageData);
+    // For each participant of the chat, save the message in their table
+    for (const participantId of chat.participants) {
+      const partIdStr = participantId.toString();
+      const userModel = getUserMessageModel(partIdStr);
+      
+      const userMessageData = {
+        ...messageData,
+        repliedModelName: `messages_user_${partIdStr}`,
+      };
+      
+      await userModel.create(userMessageData);
+    }
 
-    // Populate sender info
-    const populatedMessage = await Message.findById(message._id)
+    // Retrieve the populated message from the sender's collection to send back
+    const senderModel = getUserMessageModel(req.user._id.toString());
+    const populatedMessage = await senderModel.findById(messageId)
       .populate('sender', 'name username email avatar bio statusMessage isOnline')
       .populate({
         path: 'repliedTo',
@@ -103,7 +118,7 @@ export const sendMessage = async (req: AuthRequest, res: Response) => {
       });
 
     // Update lastMessage in Chat
-    chat.lastMessage = message._id as any;
+    chat.lastMessage = messageId as any;
     await chat.save();
 
     // Broadcast message via Socket.IO
@@ -140,8 +155,9 @@ export const getMessages = async (req: AuthRequest, res: Response) => {
     }
 
     const skip = (page - 1) * limit;
+    const userModel = getUserMessageModel(req.user._id.toString());
 
-    const messages = await Message.find({
+    const messages = await userModel.find({
       chat: chatId,
       deletedFor: { $ne: req.user._id as any }, // Don't return messages user deleted for themselves
     })
@@ -157,7 +173,7 @@ export const getMessages = async (req: AuthRequest, res: Response) => {
       .skip(skip)
       .limit(limit);
 
-    const totalMessages = await Message.countDocuments({
+    const totalMessages = await userModel.countDocuments({
       chat: chatId,
       deletedFor: { $ne: req.user._id as any },
     });
@@ -185,7 +201,8 @@ export const editMessage = async (req: AuthRequest, res: Response) => {
   if (!content) return res.status(400).json({ message: 'Content is required' });
 
   try {
-    const message = await Message.findById(messageId);
+    const currentUserModel = getUserMessageModel(req.user._id.toString());
+    const message = await currentUserModel.findById(messageId);
     if (!message) return res.status(404).json({ message: 'Message not found' });
 
     // Verify sender
@@ -197,11 +214,19 @@ export const editMessage = async (req: AuthRequest, res: Response) => {
       return res.status(400).json({ message: 'You can only edit text messages' });
     }
 
-    message.content = content.trim();
-    message.isEdited = true;
-    await message.save();
+    const chat = await Chat.findById(message.chat);
+    if (!chat) return res.status(404).json({ message: 'Chat not found' });
 
-    const populatedMessage = await Message.findById(messageId)
+    // Update in all participants' collections
+    for (const participantId of chat.participants) {
+      const partModel = getUserMessageModel(participantId.toString());
+      await partModel.findByIdAndUpdate(messageId, {
+        content: content.trim(),
+        isEdited: true,
+      });
+    }
+
+    const populatedMessage = await currentUserModel.findById(messageId)
       .populate('sender', 'name username email avatar bio statusMessage isOnline')
       .populate({
         path: 'repliedTo',
@@ -233,8 +258,12 @@ export const deleteMessage = async (req: AuthRequest, res: Response) => {
   if (!req.user) return res.status(401).json({ message: 'Not authenticated' });
 
   try {
-    const message = await Message.findById(messageId);
+    const currentUserModel = getUserMessageModel(req.user._id.toString());
+    const message = await currentUserModel.findById(messageId);
     if (!message) return res.status(404).json({ message: 'Message not found' });
+
+    const chat = await Chat.findById(message.chat);
+    if (!chat) return res.status(404).json({ message: 'Chat not found' });
 
     if (type === 'everyone') {
       // Verify sender
@@ -242,20 +271,28 @@ export const deleteMessage = async (req: AuthRequest, res: Response) => {
         return res.status(403).json({ message: 'You can only delete your own messages for everyone' });
       }
 
-      message.deletedEveryone = true;
-      message.content = 'This message was deleted';
-      message.mediaUrl = undefined;
-      message.fileName = undefined;
-      message.fileSize = undefined;
-      await message.save();
+      // Update in all participants' collections
+      for (const participantId of chat.participants) {
+        const partModel = getUserMessageModel(participantId.toString());
+        await partModel.findByIdAndUpdate(messageId, {
+          deletedEveryone: true,
+          content: 'This message was deleted',
+          mediaUrl: undefined,
+          mediaPublicId: undefined,
+          fileName: undefined,
+          fileSize: undefined,
+        });
+      }
+
+      const updatedMessage = await currentUserModel.findById(messageId);
 
       // Broadcast message deletion in real-time
       const io = req.app.get('socketio');
       if (io) {
-        io.to(message.chat.toString()).emit('messageUpdated', message);
+        io.to(message.chat.toString()).emit('messageUpdated', updatedMessage);
       }
 
-      return res.status(200).json({ messageId, type: 'everyone', message });
+      return res.status(200).json({ messageId, type: 'everyone', message: updatedMessage });
     } else {
       // Delete for me
       if (!message.deletedFor.includes(req.user._id as any)) {
@@ -281,30 +318,39 @@ export const reactToMessage = async (req: AuthRequest, res: Response) => {
   if (!emoji) return res.status(400).json({ message: 'Emoji is required' });
 
   try {
-    const message = await Message.findById(messageId);
+    const currentUserModel = getUserMessageModel(req.user._id.toString());
+    const message = await currentUserModel.findById(messageId);
     if (!message) return res.status(404).json({ message: 'Message not found' });
 
+    const chat = await Chat.findById(message.chat);
+    if (!chat) return res.status(404).json({ message: 'Chat not found' });
+
     // Check if user already reacted
-    const existingReactionIndex = message.reactions.findIndex(
+    const reactions = [...message.reactions];
+    const existingReactionIndex = reactions.findIndex(
       (r) => r.user.toString() === req.user!._id.toString()
     );
 
     if (existingReactionIndex > -1) {
-      if (message.reactions[existingReactionIndex].emoji === emoji) {
+      if (reactions[existingReactionIndex].emoji === emoji) {
         // Toggle off reaction if clicked twice
-        message.reactions.splice(existingReactionIndex, 1);
+        reactions.splice(existingReactionIndex, 1);
       } else {
         // Update reaction emoji if changed
-        message.reactions[existingReactionIndex].emoji = emoji;
+        reactions[existingReactionIndex].emoji = emoji;
       }
     } else {
       // Add new reaction
-      message.reactions.push({ user: req.user._id as any, emoji });
+      reactions.push({ user: req.user._id as any, emoji });
     }
 
-    await message.save();
+    // Save updated reactions list to all participants' collections
+    for (const participantId of chat.participants) {
+      const partModel = getUserMessageModel(participantId.toString());
+      await partModel.findByIdAndUpdate(messageId, { reactions });
+    }
 
-    const populatedMessage = await Message.findById(messageId)
+    const populatedMessage = await currentUserModel.findById(messageId)
       .populate('sender', 'name username email avatar bio statusMessage isOnline')
       .populate({
         path: 'repliedTo',
@@ -335,13 +381,21 @@ export const pinMessage = async (req: AuthRequest, res: Response) => {
   if (!req.user) return res.status(401).json({ message: 'Not authenticated' });
 
   try {
-    const message = await Message.findById(messageId);
+    const currentUserModel = getUserMessageModel(req.user._id.toString());
+    const message = await currentUserModel.findById(messageId);
     if (!message) return res.status(404).json({ message: 'Message not found' });
 
-    message.isPinned = !message.isPinned;
-    await message.save();
+    const chat = await Chat.findById(message.chat);
+    if (!chat) return res.status(404).json({ message: 'Chat not found' });
 
-    return res.status(200).json({ messageId, isPinned: message.isPinned });
+    const newPinStatus = !message.isPinned;
+
+    for (const participantId of chat.participants) {
+      const partModel = getUserMessageModel(participantId.toString());
+      await partModel.findByIdAndUpdate(messageId, { isPinned: newPinStatus });
+    }
+
+    return res.status(200).json({ messageId, isPinned: newPinStatus });
   } catch (error: any) {
     console.error('Pin message error:', error);
     return res.status(500).json({ message: 'Internal Server Error' });
@@ -356,7 +410,8 @@ export const starMessage = async (req: AuthRequest, res: Response) => {
   if (!req.user) return res.status(401).json({ message: 'Not authenticated' });
 
   try {
-    const message = await Message.findById(messageId);
+    const currentUserModel = getUserMessageModel(req.user._id.toString());
+    const message = await currentUserModel.findById(messageId);
     if (!message) return res.status(404).json({ message: 'Message not found' });
 
     const isStarred = message.starredBy.includes(req.user._id as any);
@@ -382,7 +437,8 @@ export const getStarredMessages = async (req: AuthRequest, res: Response) => {
   if (!req.user) return res.status(401).json({ message: 'Not authenticated' });
 
   try {
-    const starredMessages = await Message.find({
+    const currentUserModel = getUserMessageModel(req.user._id.toString());
+    const starredMessages = await currentUserModel.find({
       chat: chatId,
       starredBy: { $in: [req.user._id as any] },
     }).populate('sender', 'name username avatar');
@@ -393,3 +449,4 @@ export const getStarredMessages = async (req: AuthRequest, res: Response) => {
     return res.status(500).json({ message: 'Internal Server Error' });
   }
 };
+

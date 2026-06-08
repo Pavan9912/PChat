@@ -139,8 +139,8 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     });
 
     // User online indicators
-    socketInstance.on('userStatus', ({ userId, isOnline, lastSeen }) => {
-      const payload = { userId, isOnline, lastSeen: lastSeen ? new Date(lastSeen).toISOString() : undefined };
+    socketInstance.on('userStatus', ({ userId, isOnline, lastSeen, user }) => {
+      const payload = { userId, isOnline, lastSeen: lastSeen ? new Date(lastSeen).toISOString() : undefined, user };
       dispatch(setUserOnlineStatus(payload));
       dispatch(setFriendOnlineStatus(payload));
     });

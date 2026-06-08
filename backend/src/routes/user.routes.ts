@@ -8,6 +8,7 @@ import {
   setChatLockPin,
   verifyChatLockPin,
   removeChatLockPin,
+  getOnlineUsers,
 } from '../controllers/user.controller';
 import { protect } from '../middleware/auth.middleware';
 import { upload } from '../middleware/upload.middleware';
@@ -20,6 +21,7 @@ router.get('/profile', getUserProfile);
 router.put('/profile', updateUserProfile);
 router.post('/avatar', upload.single('avatar'), updateUserAvatar);
 router.get('/search', searchUsers);
+router.get('/online', getOnlineUsers);
 router.delete('/account', deleteUserAccount);
 
 router.post('/chat-lock/pin', setChatLockPin);
@@ -27,3 +29,4 @@ router.post('/chat-lock/verify', verifyChatLockPin);
 router.delete('/chat-lock/pin', removeChatLockPin);
 
 export default router;
+

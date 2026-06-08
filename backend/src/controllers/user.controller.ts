@@ -285,3 +285,41 @@ export const removeChatLockPin = async (req: AuthRequest, res: Response) => {
     return res.status(500).json({ message: 'Internal Server Error' });
   }
 };
+
+// @desc    Get all online users
+// @route   GET /api/users/online
+// @access  Private
+export const getOnlineUsers = async (req: AuthRequest, res: Response) => {
+  if (!req.user) {
+    return res.status(401).json({ message: 'Not authenticated' });
+  }
+
+  try {
+    // Exclude current user and anyone blocked or who blocked the user
+    const user = await User.findById(req.user._id);
+    const exclusions = [req.user._id, ...(user?.blockedUsers || [])];
+
+    const onlineCount = await User.countDocuments({
+      _id: { $nin: exclusions },
+      isOnline: true,
+      isBanned: false,
+    });
+
+    const users = await User.find({
+      _id: { $nin: exclusions },
+      isBanned: false,
+    })
+      .select('name username email avatar bio statusMessage isOnline lastSeen')
+      .sort({ isOnline: -1, lastSeen: -1 })
+      .limit(50);
+
+    return res.status(200).json({
+      onlineCount,
+      users,
+    });
+  } catch (error) {
+    console.error('Get online users error:', error);
+    return res.status(500).json({ message: 'Internal Server Error' });
+  }
+};
+
