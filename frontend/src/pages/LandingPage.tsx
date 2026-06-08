@@ -29,8 +29,9 @@ export const LandingPage: React.FC = () => {
           <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-400 to-teal-500 flex items-center justify-center font-black text-slate-950 text-base tracking-tighter shadow-lg shadow-emerald-500/20">
             PCN
           </div>
-          <span className="text-xl font-bold tracking-tight bg-gradient-to-r from-white to-slate-300 bg-clip-text text-transparent">
-            PChatNow
+          <span className="text-xl tracking-tight">
+            <span className="font-extrabold text-white">PChat</span>
+            <span className="font-medium text-slate-400">Now</span>
           </span>
         </div>
         <div className="flex items-center gap-4">
@@ -56,12 +57,11 @@ export const LandingPage: React.FC = () => {
           Production-Ready Chat App
         </div>
 
-        <h1 className="text-5xl md:text-7xl font-extrabold tracking-tight mb-6 animate-fade-in">
-          <span className="bg-gradient-to-r from-white via-slate-100 to-slate-400 bg-clip-text text-transparent">
-            PChatNow
-          </span>
+        <h1 className="text-5xl md:text-7xl tracking-tight mb-6 animate-fade-in">
+          <span className="font-black text-white">PChat</span>
+          <span className="font-medium text-slate-400">Now</span>
         </h1>
-        <p className="text-2xl md:text-3xl font-light tracking-wide text-emerald-400 mb-8 max-w-2xl animate-fade-in" style={{ animationDelay: '0.1s' }}>
+        <p className="text-2xl md:text-3xl font-semibold tracking-wide text-[#00a884] mb-8 max-w-2xl animate-fade-in" style={{ animationDelay: '0.1s' }}>
           Connect. Chat. Instantly.
         </p>
 
@@ -186,7 +186,11 @@ export const LandingPage: React.FC = () => {
                 <div className="relative w-full h-full rounded-2xl border border-slate-800 bg-slate-950 flex flex-col items-center justify-center text-center p-4">
                   <div className="text-3xl font-black text-emerald-400">99.9%</div>
                   <div className="text-xs font-bold text-slate-500 uppercase mt-2">Uptime verified</div>
-                  <div className="text-xl font-bold text-white mt-4">PChatNow Live</div>
+                  <div className="text-xl tracking-tight mt-4">
+                    <span className="font-extrabold text-white">PChat</span>
+                    <span className="font-medium text-slate-400">Now</span>
+                    <span className="font-bold text-white ml-1.5">Live</span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -199,7 +203,11 @@ export const LandingPage: React.FC = () => {
         <div className="max-w-6xl mx-auto px-6 flex flex-col sm:flex-row items-center justify-between gap-6 text-sm text-slate-500">
           <div className="flex items-center gap-2">
             <div className="w-6 h-6 rounded-md bg-emerald-400 flex items-center justify-center text-slate-950 font-black text-[9px] tracking-tighter">PCN</div>
-            <span>PChatNow &copy; {new Date().getFullYear()}</span>
+            <span className="text-xs tracking-tight">
+              <span className="font-bold text-white">PChat</span>
+              <span className="font-medium text-slate-400">Now</span>
+              <span className="text-slate-500 ml-1.5">&copy; {new Date().getFullYear()}</span>
+            </span>
           </div>
           <div className="flex gap-6">
             <a href="#" className="hover:text-slate-300">Privacy Policy</a>

@@ -389,7 +389,11 @@ export const ChatArea: React.FC<ChatAreaProps> = ({ onToggleRightSidebar }) => {
           <div className="w-20 h-20 rounded-3xl bg-gradient-to-tr from-emerald-400 to-teal-500 flex items-center justify-center font-black text-slate-950 text-3xl mb-6 shadow-2xl shadow-emerald-500/10 tracking-tighter">
             PCN
           </div>
-          <h2 className="text-2xl font-bold text-white mb-2">PChatNow Desktop</h2>
+          <h2 className="text-2xl tracking-tight mb-2">
+            <span className="font-extrabold text-white">PChat</span>
+            <span className="font-semibold text-slate-400">Now</span>
+            <span className="font-bold text-white ml-2">Desktop</span>
+          </h2>
           <p className="text-sm text-dark-secondary max-w-sm mb-6 leading-relaxed">
             Connect. Chat. Instantly. Select an existing conversation or search profiles in the left menu to start messaging.
           </p>
