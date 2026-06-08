@@ -18,8 +18,39 @@ export const RegisterForm: React.FC = () => {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [localError, setLocalError] = useState<string | null>(null);
+  const [otp, setOtp] = useState('');
+  const [otpSent, setOtpSent] = useState(false);
+  const [otpLoading, setOtpLoading] = useState(false);
+  const [otpSuccessMessage, setOtpSuccessMessage] = useState<string | null>(null);
 
   const apiHost = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+
+  const handleSendOtp = async () => {
+    if (!email) {
+      setLocalError('Email address is required to send OTP');
+      return;
+    }
+    setOtpLoading(true);
+    setLocalError(null);
+    setOtpSuccessMessage(null);
+    try {
+      const res = await fetch(`${apiHost}/api/auth/send-otp`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.message || 'Failed to send OTP');
+      }
+      setOtpSent(true);
+      setOtpSuccessMessage('Verification OTP sent to your email.');
+    } catch (err: any) {
+      setLocalError(err.message || 'Failed to send OTP');
+    } finally {
+      setOtpLoading(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -41,7 +72,12 @@ export const RegisterForm: React.FC = () => {
         setLocalError('Email Address is required');
         return;
       }
+      if (!otp) {
+        setLocalError('Verification OTP is required');
+        return;
+      }
       payload.email = email;
+      payload.otp = otp;
     } else {
       if (!phoneNumber) {
         setLocalError('Phone Number is required');
@@ -145,18 +181,50 @@ export const RegisterForm: React.FC = () => {
         </div>
 
         {signupMethod === 'email' ? (
-          <div>
-            <label className="block text-xs font-semibold text-dark-secondary uppercase tracking-wider mb-2">
-              Email Address
-            </label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required={signupMethod === 'email'}
-              className="w-full px-4 py-2.5 bg-dark-input border border-neutral-800 text-white rounded-xl focus:border-dark-accent focus:outline-none transition-colors text-sm"
-              placeholder="name@example.com"
-            />
+          <div className="space-y-4">
+            <div>
+              <label className="block text-xs font-semibold text-dark-secondary uppercase tracking-wider mb-2">
+                Email Address
+              </label>
+              <div className="flex gap-2">
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required={signupMethod === 'email'}
+                  className="flex-1 px-4 py-2.5 bg-dark-input border border-neutral-800 text-white rounded-xl focus:border-dark-accent focus:outline-none transition-colors text-sm"
+                  placeholder="name@example.com"
+                />
+                <button
+                  type="button"
+                  onClick={handleSendOtp}
+                  disabled={otpLoading || !email}
+                  className="px-4 bg-neutral-800 text-white hover:bg-neutral-700 text-xs font-semibold rounded-xl transition-all border border-neutral-700 disabled:opacity-50 disabled:cursor-not-allowed shrink-0 flex items-center justify-center min-w-[90px]"
+                >
+                  {otpLoading ? <Loader2 className="w-4 h-4 animate-spin text-white" /> : (otpSent ? 'Resend' : 'Send OTP')}
+                </button>
+              </div>
+              {otpSuccessMessage && (
+                <p className="mt-1.5 text-xs text-emerald-400 font-medium">{otpSuccessMessage}</p>
+              )}
+            </div>
+
+            {otpSent && (
+              <div>
+                <label className="block text-xs font-semibold text-dark-secondary uppercase tracking-wider mb-2">
+                  Verification Code (OTP)
+                </label>
+                <input
+                  type="text"
+                  maxLength={6}
+                  value={otp}
+                  onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
+                  required={signupMethod === 'email'}
+                  className="w-full px-4 py-2.5 bg-dark-input border border-neutral-800 text-white rounded-xl focus:border-dark-accent focus:outline-none transition-colors text-sm tracking-widest text-center font-mono text-lg"
+                  placeholder="000000"
+                />
+              </div>
+            )}
           </div>
         ) : (
           <div>

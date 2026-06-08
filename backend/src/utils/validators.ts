@@ -58,7 +58,17 @@ export const validateLogin = [
       }
       return true;
     }).trim(),
-  body('password').notEmpty().withMessage('Password is required'),
+  body('password').custom((value, { req }) => {
+    if (!value && !req.body.otp) {
+      throw new Error('Password or OTP is required');
+    }
+    return true;
+  }),
+];
+
+// Validation rules for sending OTP
+export const validateSendOtp = [
+  body('email').isEmail().withMessage('Please enter a valid email address').trim().normalizeEmail(),
 ];
 
 // Validation rules for Password change

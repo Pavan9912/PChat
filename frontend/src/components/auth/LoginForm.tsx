@@ -14,19 +14,81 @@ export const LoginForm: React.FC = () => {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
+  const [loginMode, setLoginMode] = useState<'password' | 'otp'>('password');
+  const [otp, setOtp] = useState('');
+  const [otpSent, setOtpSent] = useState(false);
+  const [otpLoading, setOtpLoading] = useState(false);
+  const [otpSuccessMessage, setOtpSuccessMessage] = useState<string | null>(null);
+  const [localError, setLocalError] = useState<string | null>(null);
 
   const apiHost = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
+  const handleSendOtp = async () => {
+    if (!email) {
+      setLocalError('Email address is required to send OTP');
+      return;
+    }
+    const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+    if (!isEmail) {
+      setLocalError('Please enter a valid email address to send OTP');
+      return;
+    }
+
+    setOtpLoading(true);
+    setLocalError(null);
+    setOtpSuccessMessage(null);
+    try {
+      const res = await fetch(`${apiHost}/api/auth/send-otp`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.message || 'Failed to send OTP');
+      }
+      setOtpSent(true);
+      setOtpSuccessMessage('Verification OTP sent to your email.');
+    } catch (err: any) {
+      setLocalError(err.message || 'Failed to send OTP');
+    } finally {
+      setOtpLoading(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email || !password) return;
+    setLocalError(null);
+
+    if (loginMode === 'otp') {
+      if (!email) {
+        setLocalError('Email address is required');
+        return;
+      }
+      if (!otp) {
+        setLocalError('Verification OTP is required');
+        return;
+      }
+    } else {
+      if (!email || !password) {
+        setLocalError('Email/Phone and Password are required');
+        return;
+      }
+    }
 
     dispatch(authStart());
     try {
+      const payload: any = { email };
+      if (loginMode === 'otp') {
+        payload.otp = otp;
+      } else {
+        payload.password = password;
+      }
+
       const res = await fetch(`${apiHost}/api/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify(payload),
       });
 
       const data = await res.json();
@@ -74,74 +136,125 @@ export const LoginForm: React.FC = () => {
         <p className="text-sm text-dark-secondary">Please sign in to access your chat feed.</p>
       </div>
 
-      {error && (
+      {(error || localError) && (
         <div className="mb-6 p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm flex items-center gap-2">
           <AlertTriangle className="w-4 h-4 shrink-0" />
-          <span>{error}</span>
+          <span>{localError || error}</span>
         </div>
       )}
 
       <form onSubmit={handleSubmit} className="space-y-5">
         <div>
           <label className="block text-xs font-semibold text-dark-secondary uppercase tracking-wider mb-2">
-            Email or Phone Number
+            {loginMode === 'otp' ? 'Email Address' : 'Email or Phone Number'}
           </label>
-          <input
-            type="text"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-            className="w-full px-4 py-3 bg-dark-input border border-neutral-800 text-white rounded-xl focus:border-dark-accent focus:outline-none transition-colors text-sm"
-            placeholder="name@example.com or +123456789"
-          />
-        </div>
-
-        <div>
-          <div className="flex justify-between items-center mb-2">
-            <label className="block text-xs font-semibold text-dark-secondary uppercase tracking-wider">
-              Password
-            </label>
-            <button
-              type="button"
-              onClick={() => {
-                dispatch(clearError());
-                navigate('/forgot-password');
-              }}
-              className="text-xs font-semibold text-dark-accent hover:underline"
-            >
-              Forgot Password?
-            </button>
-          </div>
-          <div className="relative">
+          <div className="flex gap-2">
             <input
-              type={showPassword ? 'text' : 'password'}
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              type="text"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
               required
-              className="w-full px-4 py-3 pr-10 bg-dark-input border border-neutral-800 text-white rounded-xl focus:border-dark-accent focus:outline-none transition-colors text-sm"
-              placeholder="••••••••"
+              className="flex-1 px-4 py-3 bg-dark-input border border-neutral-800 text-white rounded-xl focus:border-dark-accent focus:outline-none transition-colors text-sm"
+              placeholder={loginMode === 'otp' ? 'name@example.com' : 'name@example.com or +123456789'}
             />
-            <button
-              type="button"
-              onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-dark-secondary hover:text-white transition-colors"
-            >
-              {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-            </button>
+            {loginMode === 'otp' && (
+              <button
+                type="button"
+                onClick={handleSendOtp}
+                disabled={otpLoading || !email}
+                className="px-4 bg-neutral-800 text-white hover:bg-neutral-700 text-xs font-semibold rounded-xl transition-all border border-neutral-700 disabled:opacity-50 disabled:cursor-not-allowed shrink-0 flex items-center justify-center min-w-[90px]"
+              >
+                {otpLoading ? <Loader2 className="w-4 h-4 animate-spin text-white" /> : (otpSent ? 'Resend' : 'Send OTP')}
+              </button>
+            )}
           </div>
+          {loginMode === 'otp' && otpSuccessMessage && (
+            <p className="mt-1.5 text-xs text-emerald-400 font-medium">{otpSuccessMessage}</p>
+          )}
         </div>
 
-        <div className="flex items-center">
-          <input
-            id="remember-me"
-            type="checkbox"
-            checked={rememberMe}
-            onChange={(e) => setRememberMe(e.target.checked)}
-            className="w-4 h-4 bg-dark-input border border-neutral-800 rounded accent-dark-accent focus:ring-0 focus:ring-offset-0"
-          />
-          <label htmlFor="remember-me" className="ml-2 text-xs text-dark-secondary cursor-pointer select-none">
-            Remember me
-          </label>
+        {loginMode === 'otp' ? (
+          otpSent && (
+            <div>
+              <label className="block text-xs font-semibold text-dark-secondary uppercase tracking-wider mb-2">
+                Verification Code (OTP)
+              </label>
+              <input
+                type="text"
+                maxLength={6}
+                value={otp}
+                onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
+                required
+                className="w-full px-4 py-3 bg-dark-input border border-neutral-800 text-white rounded-xl focus:border-dark-accent focus:outline-none transition-colors text-sm tracking-widest text-center font-mono text-lg"
+                placeholder="000000"
+              />
+            </div>
+          )
+        ) : (
+          <div>
+            <div className="flex justify-between items-center mb-2">
+              <label className="block text-xs font-semibold text-dark-secondary uppercase tracking-wider">
+                Password
+              </label>
+              <button
+                type="button"
+                onClick={() => {
+                  dispatch(clearError());
+                  navigate('/forgot-password');
+                }}
+                className="text-xs font-semibold text-dark-accent hover:underline"
+              >
+                Forgot Password?
+              </button>
+            </div>
+            <div className="relative">
+              <input
+                type={showPassword ? 'text' : 'password'}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required={loginMode === 'password'}
+                className="w-full px-4 py-3 pr-10 bg-dark-input border border-neutral-800 text-white rounded-xl focus:border-dark-accent focus:outline-none transition-colors text-sm"
+                placeholder="••••••••"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-dark-secondary hover:text-white transition-colors"
+              >
+                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
+            </div>
+          </div>
+        )}
+
+        <div className="flex justify-between items-center">
+          <div className="flex items-center">
+            <input
+              id="remember-me"
+              type="checkbox"
+              checked={rememberMe}
+              onChange={(e) => setRememberMe(e.target.checked)}
+              className="w-4 h-4 bg-dark-input border border-neutral-800 rounded accent-dark-accent focus:ring-0 focus:ring-offset-0"
+            />
+            <label htmlFor="remember-me" className="ml-2 text-xs text-dark-secondary cursor-pointer select-none">
+              Remember me
+            </label>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => {
+              setLoginMode(loginMode === 'password' ? 'otp' : 'password');
+              setLocalError(null);
+              setOtp('');
+              setOtpSent(false);
+              setOtpSuccessMessage(null);
+              dispatch(clearError());
+            }}
+            className="text-xs font-bold text-dark-accent hover:underline"
+          >
+            {loginMode === 'password' ? 'Sign In with Email OTP' : 'Sign In with Password'}
+          </button>
         </div>
 
         <button
