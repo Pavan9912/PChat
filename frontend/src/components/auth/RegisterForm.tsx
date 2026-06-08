@@ -47,11 +47,12 @@ export const RegisterForm: React.FC = () => {
         setLocalError('Phone Number is required');
         return;
       }
-      if (!/^\+?[1-9]\d{1,14}$/.test(phoneNumber)) {
+      const cleanPhone = phoneNumber.replace(/[\s\-\(\)]/g, '');
+      if (!/^\+?[1-9]\d{1,14}$/.test(cleanPhone)) {
         setLocalError('Please enter a valid phone number (e.g. +123456789)');
         return;
       }
-      payload.phoneNumber = phoneNumber;
+      payload.phoneNumber = cleanPhone;
     }
 
     dispatch(authStart());

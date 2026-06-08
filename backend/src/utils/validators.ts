@@ -23,6 +23,7 @@ export const validateRegister = [
     .isEmail().withMessage('Please enter a valid email address').trim().normalizeEmail(),
   body('phoneNumber')
     .optional({ checkFalsy: true })
+    .customSanitizer((value) => (value ? value.replace(/[\s\-\(\)]/g, '') : value))
     .matches(/^\+?[1-9]\d{1,14}$/).withMessage('Please enter a valid phone number')
     .trim(),
   body('password').isLength({ min: 6 }).withMessage('Password must be at least 6 characters'),
@@ -44,6 +45,11 @@ export const validateRegister = [
 export const validateLogin = [
   body('email')
     .notEmpty().withMessage('Email or Phone Number is required')
+    .customSanitizer((value) => {
+      if (!value) return value;
+      const isMaybePhone = /^\+?[0-9\s\-\(\)]+$/.test(value);
+      return isMaybePhone ? value.replace(/[\s\-\(\)]/g, '') : value;
+    })
     .custom((value) => {
       const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
       const isPhone = /^\+?[1-9]\d{1,14}$/.test(value);
