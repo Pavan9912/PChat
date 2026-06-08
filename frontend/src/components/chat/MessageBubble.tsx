@@ -155,10 +155,10 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
 
       {/* Message Box */}
       <div
-        className={`p-3 rounded-2xl shadow-md border relative ${
+        className={`p-3 rounded-2xl shadow-md relative ${
           isSelf
-            ? 'bg-dark-accent/10 border-dark-accent/20 text-white rounded-tr-none'
-            : 'bg-dark-panel border-neutral-800 text-white rounded-tl-none'
+            ? 'bg-[#005c4b] text-[#e9edef] rounded-tr-none'
+            : 'bg-[#202c33] text-[#e9edef] rounded-tl-none'
         } ${msg.repliedTo ? 'rounded-t-none' : ''}`}
       >
         {/* Rich media renderers */}
@@ -225,10 +225,10 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
 
         {/* Pin, Star & Time indicators */}
         <div className="flex items-center justify-end gap-1.5 mt-2.5 select-none">
-          {msg.isPinned && <Pin className="w-3 h-3 text-dark-accent rotate-45" />}
+          {msg.isPinned && <Pin className={`w-3 h-3 rotate-45 ${isSelf ? 'text-white/70' : 'text-dark-accent'}`} />}
           {isStarred && <Star className="w-3 h-3 text-amber-400 fill-amber-400" />}
-          {msg.isEdited && <span className="text-[9px] text-dark-secondary font-medium">edited</span>}
-          <span className="text-[9px] text-dark-secondary">
+          {msg.isEdited && <span className={`text-[9px] font-medium ${isSelf ? 'text-white/60' : 'text-dark-secondary'}`}>edited</span>}
+          <span className={`text-[9px] ${isSelf ? 'text-white/65' : 'text-dark-secondary'}`}>
             {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
           </span>
         </div>

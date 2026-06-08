@@ -214,7 +214,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   };
 
   return (
-    <div className="border-t border-neutral-900 bg-dark-panel p-3 flex flex-col gap-2 shrink-0 select-none relative">
+    <div className="border-t border-neutral-900/60 bg-[#202c33] p-3 flex flex-col gap-2 shrink-0 select-none relative">
       
       {/* Hidden File Input handler */}
       <input

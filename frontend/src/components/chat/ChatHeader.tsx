@@ -59,7 +59,7 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({ onToggleRightSidebar, on
   };
 
   return (
-    <div className="h-16 border-b border-neutral-900 px-4 flex items-center justify-between bg-dark-panel shrink-0 select-none">
+    <div className="h-16 border-b border-neutral-900/60 px-4 flex items-center justify-between bg-[#202c33] shrink-0 select-none">
       
       {/* Participant info */}
       <div className="flex items-center gap-3 min-w-0">

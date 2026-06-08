@@ -326,7 +326,11 @@ export const ChatArea: React.FC<ChatAreaProps> = ({ onToggleRightSidebar }) => {
           <div
             ref={feedContainerRef}
             onScroll={handleScroll}
-            className="flex-1 overflow-y-auto p-4 flex flex-col gap-3 relative"
+            className="flex-1 overflow-y-auto p-4 flex flex-col gap-3 relative bg-[#0b141a]"
+            style={{
+              backgroundImage: 'radial-gradient(rgba(255, 255, 255, 0.035) 1.2px, transparent 0)',
+              backgroundSize: '24px 24px',
+            }}
           >
             {filteredMessages.length > 0 ? (
               filteredMessages.map((msg) => (
