@@ -4,7 +4,8 @@ export interface UserProfile {
   _id: string;
   name: string;
   username: string;
-  email: string;
+  email?: string;
+  phoneNumber?: string;
   avatar: string;
   bio: string;
   statusMessage: string;

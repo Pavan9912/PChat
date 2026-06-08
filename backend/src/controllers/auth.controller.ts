@@ -8,18 +8,23 @@ import { AuthRequest } from '../middleware/auth.middleware';
 // @route   POST /api/auth/register
 // @access  Public
 export const registerUser = async (req: Request, res: Response) => {
-  const { name, username, email, password } = req.body;
+  const { name, username, email, phoneNumber, password } = req.body;
 
   try {
-    const userExists = await User.findOne({ $or: [{ email }, { username }] });
+    const checkQuery: any[] = [{ username: username.toLowerCase().trim() }];
+    if (email) checkQuery.push({ email: email.toLowerCase().trim() });
+    if (phoneNumber) checkQuery.push({ phoneNumber: phoneNumber.trim() });
+
+    const userExists = await User.findOne({ $or: checkQuery });
     if (userExists) {
-      return res.status(400).json({ message: 'User with this email or username already exists' });
+      return res.status(400).json({ message: 'User with this email, username, or phone number already exists' });
     }
 
     const user = await User.create({
       name,
-      username,
-      email,
+      username: username.toLowerCase().trim(),
+      email: email ? email.toLowerCase().trim() : undefined,
+      phoneNumber: phoneNumber ? phoneNumber.trim() : undefined,
       password,
     });
 
@@ -30,6 +35,7 @@ export const registerUser = async (req: Request, res: Response) => {
         name: user.name,
         username: user.username,
         email: user.email,
+        phoneNumber: user.phoneNumber,
         avatar: user.avatar,
         bio: user.bio,
         role: user.role,
@@ -54,9 +60,15 @@ export const loginUser = async (req: Request, res: Response) => {
   const { email, password } = req.body;
 
   try {
-    const user = await User.findOne({ email });
+    const loginIdentifier = email ? email.trim() : '';
+    const user = await User.findOne({
+      $or: [
+        { email: loginIdentifier.toLowerCase() },
+        { phoneNumber: loginIdentifier }
+      ]
+    });
     if (!user) {
-      return res.status(401).json({ message: 'Invalid email or password' });
+      return res.status(401).json({ message: 'Invalid email, phone number, or password' });
     }
 
     if (user.isBanned) {
@@ -65,7 +77,7 @@ export const loginUser = async (req: Request, res: Response) => {
 
     const isMatch = await user.comparePassword(password);
     if (!isMatch) {
-      return res.status(401).json({ message: 'Invalid email or password' });
+      return res.status(401).json({ message: 'Invalid email, phone number, or password' });
     }
 
     const token = generateToken(res, user._id.toString());
@@ -74,6 +86,7 @@ export const loginUser = async (req: Request, res: Response) => {
       name: user.name,
       username: user.username,
       email: user.email,
+      phoneNumber: user.phoneNumber,
       avatar: user.avatar,
       bio: user.bio,
       role: user.role,
@@ -131,6 +144,7 @@ export const socialLogin = async (req: Request, res: Response) => {
       name: user.name,
       username: user.username,
       email: user.email,
+      phoneNumber: user.phoneNumber,
       avatar: user.avatar,
       bio: user.bio,
       role: user.role,
