@@ -1,9 +1,15 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { Eye, EyeOff, Loader2, Chrome, Facebook, AlertTriangle } from 'lucide-react';
 import { authStart, authSuccess, authFailure, clearError } from '../../store/slices/authSlice';
 import { RootState } from '../../store';
+
+declare global {
+  interface Window {
+    google?: any;
+  }
+}
 
 export const LoginForm: React.FC = () => {
   const navigate = useNavigate();
@@ -22,6 +28,64 @@ export const LoginForm: React.FC = () => {
   const [localError, setLocalError] = useState<string | null>(null);
 
   const apiHost = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+
+  const handleGoogleCredentialResponse = async (response: any) => {
+    dispatch(authStart());
+    try {
+      const res = await fetch(`${apiHost}/api/auth/google-login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ credential: response.credential }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.message || 'Google authentication failed');
+      }
+
+      dispatch(authSuccess({ user: data, token: data.token }));
+      navigate('/dashboard');
+    } catch (err: any) {
+      dispatch(authFailure(err.message || 'Google authentication failed'));
+    }
+  };
+
+  useEffect(() => {
+    const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+    
+    const initializeGoogle = () => {
+      if (window.google && googleClientId) {
+        window.google.accounts.id.initialize({
+          client_id: googleClientId,
+          callback: handleGoogleCredentialResponse,
+        });
+        
+        const btnContainer = document.getElementById('google-signin-button');
+        if (btnContainer) {
+          window.google.accounts.id.renderButton(btnContainer, {
+            type: 'standard',
+            theme: 'filled_dark',
+            size: 'large',
+            text: 'signin_with',
+            shape: 'rectangular',
+            logo_alignment: 'left',
+            width: btnContainer.clientWidth || 180,
+          });
+        }
+      }
+    };
+
+    initializeGoogle();
+    
+    const interval = setInterval(() => {
+      if (window.google) {
+        initializeGoogle();
+        clearInterval(interval);
+      }
+    }, 500);
+
+    return () => clearInterval(interval);
+  }, [apiHost]);
 
   const handleSendOtp = async () => {
     if (!email) {
@@ -273,23 +337,29 @@ export const LoginForm: React.FC = () => {
         </span>
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
-        <button
-          type="button"
-          onClick={() => handleSocialLogin('google')}
-          className="py-2.5 px-4 rounded-xl border border-neutral-800 bg-dark-input text-sm text-white font-medium hover:bg-neutral-800 transition-colors flex items-center justify-center gap-2"
-        >
-          <Chrome className="w-4 h-4 text-red-400" />
-          Google
-        </button>
-        <button
-          type="button"
-          onClick={() => handleSocialLogin('facebook')}
-          className="py-2.5 px-4 rounded-xl border border-neutral-800 bg-dark-input text-sm text-white font-medium hover:bg-neutral-800 transition-colors flex items-center justify-center gap-2"
-        >
-          <Facebook className="w-4 h-4 text-blue-500" />
-          Facebook
-        </button>
+      <div className="flex flex-col gap-4">
+        {import.meta.env.VITE_GOOGLE_CLIENT_ID ? (
+          <div className="w-full flex justify-center h-[44px]" id="google-signin-button"></div>
+        ) : (
+          <div className="grid grid-cols-2 gap-4">
+            <button
+              type="button"
+              onClick={() => handleSocialLogin('google')}
+              className="py-2.5 px-4 rounded-xl border border-neutral-800 bg-dark-input text-sm text-white font-medium hover:bg-neutral-800 transition-colors flex items-center justify-center gap-2"
+            >
+              <Chrome className="w-4 h-4 text-red-400" />
+              Google
+            </button>
+            <button
+              type="button"
+              onClick={() => handleSocialLogin('facebook')}
+              className="py-2.5 px-4 rounded-xl border border-neutral-800 bg-dark-input text-sm text-white font-medium hover:bg-neutral-800 transition-colors flex items-center justify-center gap-2"
+            >
+              <Facebook className="w-4 h-4 text-blue-500" />
+              Facebook
+            </button>
+          </div>
+        )}
       </div>
 
       <p className="mt-8 text-center text-xs text-dark-secondary">

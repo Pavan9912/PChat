@@ -9,6 +9,7 @@ import {
   changePassword,
   verifyEmail,
   sendOtp,
+  googleLogin,
 } from '../controllers/auth.controller';
 import {
   validateRegister,
@@ -26,6 +27,7 @@ router.post('/send-otp', authLimiter, validateSendOtp, validateFields, sendOtp);
 router.post('/register', authLimiter, validateRegister, validateFields, registerUser);
 router.post('/login', authLimiter, validateLogin, validateFields, loginUser);
 router.post('/social-login', socialLogin);
+router.post('/google-login', googleLogin);
 router.post('/logout', protect, logoutUser);
 router.post('/forgot-password', forgotPassword);
 router.post('/reset-password/:token', resetPassword);

@@ -5,6 +5,7 @@ import { OTP } from '../models/OTP';
 import { generateToken } from '../utils/generateToken';
 import { AuthRequest } from '../middleware/auth.middleware';
 import { sendEmail } from '../utils/sendEmail';
+import { OAuth2Client } from 'google-auth-library';
 
 // @desc    Register a new user
 // @route   POST /api/auth/register
@@ -381,5 +382,97 @@ export const sendOtp = async (req: Request, res: Response) => {
   } catch (error) {
     console.error('Send OTP error:', error);
     return res.status(500).json({ message: 'Internal Server Error' });
+  }
+};
+
+const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+
+// @desc    Google OAuth Login
+// @route   POST /api/auth/google-login
+// @access  Public
+export const googleLogin = async (req: Request, res: Response) => {
+  const { credential } = req.body;
+
+  if (!credential) {
+    return res.status(400).json({ message: 'Google credential token is required' });
+  }
+
+  try {
+    const clientId = process.env.GOOGLE_CLIENT_ID;
+    if (!clientId) {
+      console.warn('[PChat Security] GOOGLE_CLIENT_ID not configured in backend env.');
+    }
+
+    // Verify token with Google
+    const ticket = await googleClient.verifyIdToken({
+      idToken: credential,
+      audience: clientId,
+    });
+
+    const payload = ticket.getPayload();
+    if (!payload) {
+      return res.status(400).json({ message: 'Invalid Google credential token' });
+    }
+
+    const { email, name, picture, sub: googleId } = payload;
+
+    if (!email) {
+      return res.status(400).json({ message: 'Email address not provided by Google' });
+    }
+
+    // Check if user exists by email
+    let user = await User.findOne({ email: email.toLowerCase().trim() });
+
+    if (user) {
+      // If user exists, check if googleId is already set
+      let needsSave = false;
+      if (!user.googleId) {
+        user.googleId = googleId;
+        needsSave = true;
+      }
+      if (picture && !user.avatar) {
+        user.avatar = picture;
+        needsSave = true;
+      }
+      if (needsSave) {
+        await user.save();
+      }
+    } else {
+      // Create a new user with randomized username and empty password
+      const baseUsername = email.split('@')[0].replace(/[^a-zA-Z0-9_]/g, '');
+      const tempUsername = baseUsername + Math.floor(Math.random() * 10000);
+
+      user = await User.create({
+        name: name || 'Google User',
+        username: tempUsername.toLowerCase().trim(),
+        email: email.toLowerCase().trim(),
+        avatar: picture || '',
+        googleId,
+        isVerified: true, // Trusted email from Google auth
+      });
+    }
+
+    if (user.isBanned) {
+      return res.status(403).json({ message: 'This account has been banned by the administrator' });
+    }
+
+    const token = generateToken(res, user._id.toString());
+    return res.status(200).json({
+      _id: user._id,
+      name: user.name,
+      username: user.username,
+      email: user.email,
+      phoneNumber: user.phoneNumber,
+      avatar: user.avatar,
+      bio: user.bio,
+      role: user.role,
+      isVerified: user.isVerified,
+      hasChatLockPin: !!user.chatLockPin,
+      blockedUsers: user.blockedUsers || [],
+      token,
+    });
+  } catch (error: any) {
+    console.error('Google login error:', error);
+    return res.status(400).json({ message: 'Google authentication failed: ' + error.message });
   }
 };
