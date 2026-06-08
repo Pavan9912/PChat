@@ -8,7 +8,6 @@ import {
   resetPassword,
   changePassword,
   verifyEmail,
-  sendOtp,
   googleLogin,
 } from '../controllers/auth.controller';
 import {
@@ -16,14 +15,12 @@ import {
   validateLogin,
   validatePasswordChange,
   validateFields,
-  validateSendOtp,
 } from '../utils/validators';
 import { protect } from '../middleware/auth.middleware';
 import { authLimiter } from '../middleware/rateLimiter.middleware';
 
 const router = Router();
 
-router.post('/send-otp', authLimiter, validateSendOtp, validateFields, sendOtp);
 router.post('/register', authLimiter, validateRegister, validateFields, registerUser);
 router.post('/login', authLimiter, validateLogin, validateFields, loginUser);
 router.post('/social-login', socialLogin);

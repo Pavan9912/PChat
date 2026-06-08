@@ -1,7 +1,6 @@
 import { Request, Response } from 'express';
 import crypto from 'crypto';
 import { User } from '../models/User';
-import { OTP } from '../models/OTP';
 import { generateToken } from '../utils/generateToken';
 import { AuthRequest } from '../middleware/auth.middleware';
 import { sendEmail } from '../utils/sendEmail';
@@ -11,7 +10,7 @@ import { OAuth2Client } from 'google-auth-library';
 // @route   POST /api/auth/register
 // @access  Public
 export const registerUser = async (req: Request, res: Response) => {
-  const { name, username, email, phoneNumber, otp, password } = req.body;
+  const { name, username, email, phoneNumber, password } = req.body;
 
   try {
     const checkQuery: any[] = [{ username: username.toLowerCase().trim() }];
@@ -21,19 +20,6 @@ export const registerUser = async (req: Request, res: Response) => {
     const userExists = await User.findOne({ $or: checkQuery });
     if (userExists) {
       return res.status(400).json({ message: 'User with this email, username, or phone number already exists' });
-    }
-
-    // OTP validation for email signup
-    if (email) {
-      if (!otp) {
-        return res.status(400).json({ message: 'Email verification OTP code is required' });
-      }
-      const otpRecord = await OTP.findOne({ email: email.toLowerCase().trim(), otp });
-      if (!otpRecord) {
-        return res.status(400).json({ message: 'Invalid or expired email verification OTP code' });
-      }
-      // OTP is valid! Delete it so it cannot be reused
-      await OTP.deleteOne({ _id: otpRecord._id });
     }
 
     const user = await User.create({
@@ -73,7 +59,7 @@ export const registerUser = async (req: Request, res: Response) => {
 // @route   POST /api/auth/login
 // @access  Public
 export const loginUser = async (req: Request, res: Response) => {
-  const { email, password, otp } = req.body;
+  const { email, password } = req.body;
 
   try {
     const loginIdentifier = email ? email.trim() : '';
@@ -84,31 +70,19 @@ export const loginUser = async (req: Request, res: Response) => {
       ]
     });
     if (!user) {
-      return res.status(401).json({ message: 'Invalid email, phone number, password, or OTP' });
+      return res.status(401).json({ message: 'Invalid email, phone number, or password' });
     }
 
     if (user.isBanned) {
       return res.status(403).json({ message: 'This account has been banned by the administrator' });
     }
 
-    // OTP or Password verification
-    if (otp) {
-      if (!user.email) {
-        return res.status(400).json({ message: 'OTP verification is only supported for accounts with email addresses.' });
-      }
-      const otpRecord = await OTP.findOne({ email: user.email.toLowerCase().trim(), otp });
-      if (!otpRecord) {
-        return res.status(401).json({ message: 'Invalid or expired login OTP' });
-      }
-      await OTP.deleteOne({ _id: otpRecord._id });
-    } else {
-      if (!password) {
-        return res.status(400).json({ message: 'Password or OTP is required for login' });
-      }
-      const isMatch = await user.comparePassword(password);
-      if (!isMatch) {
-        return res.status(401).json({ message: 'Invalid email, phone number, or password' });
-      }
+    if (!password) {
+      return res.status(400).json({ message: 'Password is required' });
+    }
+    const isMatch = await user.comparePassword(password);
+    if (!isMatch) {
+      return res.status(401).json({ message: 'Invalid email, phone number, or password' });
     }
 
     const token = generateToken(res, user._id.toString());
@@ -334,56 +308,7 @@ export const verifyEmail = async (req: Request, res: Response) => {
   }
 };
 
-// @desc    Send OTP to email
-// @route   POST /api/auth/send-otp
-// @access  Public
-export const sendOtp = async (req: Request, res: Response) => {
-  const { email } = req.body;
-  if (!email) {
-    return res.status(400).json({ message: 'Email address is required' });
-  }
 
-  try {
-    const formattedEmail = email.toLowerCase().trim();
-    
-    // Generate a 6-digit numeric OTP code
-    const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
-
-    // Delete any existing OTP for this email
-    await OTP.deleteMany({ email: formattedEmail });
-
-    // Save the new OTP
-    await OTP.create({
-      email: formattedEmail,
-      otp: otpCode,
-    });
-
-    // Send the real email (falls back to console simulation if SMTP is not configured)
-    await sendEmail({
-      to: formattedEmail,
-      subject: 'PChat Security OTP Code',
-      text: `Your PChat verification OTP code is ${otpCode}. It expires in 5 minutes.`,
-      html: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; padding: 25px; border: 1px solid #e5e7eb; border-radius: 12px; background-color: #ffffff;">
-          <h2 style="color: #10b981; text-align: center; margin-bottom: 20px; font-weight: bold;">PChat Verification</h2>
-          <p style="color: #4b5563; font-size: 16px;">Hello,</p>
-          <p style="color: #4b5563; font-size: 16px; line-height: 1.5;">Use the following secure OTP code to complete your signup or login request. This code is valid for 5 minutes:</p>
-          <div style="background-color: #f3f4f6; padding: 16px; border-radius: 8px; text-align: center; font-size: 28px; font-weight: bold; letter-spacing: 5px; color: #111827; margin: 24px 0; border: 1px dashed #d1d5db;">
-            ${otpCode}
-          </div>
-          <p style="color: #9ca3af; font-size: 12px; text-align: center; margin-top: 32px; border-t: 1px solid #f3f4f6; padding-top: 16px;">
-            If you did not request this OTP, you can safely ignore this email.
-          </p>
-        </div>
-      `,
-    });
-
-    return res.status(200).json({ message: 'Verification OTP sent successfully to your email.' });
-  } catch (error) {
-    console.error('Send OTP error:', error);
-    return res.status(500).json({ message: 'Internal Server Error' });
-  }
-};
 
 const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
