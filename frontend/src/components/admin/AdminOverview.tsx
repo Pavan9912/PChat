@@ -130,7 +130,7 @@ export const AdminOverview: React.FC = () => {
         <div className="flex items-center justify-between mb-4">
           <h1 className="text-xl font-bold text-white flex items-center gap-2">
             <ShieldAlert className="w-5 h-5 text-indigo-400" />
-            PChat Control Center
+            PVN Chat Control Center
           </h1>
           <button
             onClick={loadAdminData}

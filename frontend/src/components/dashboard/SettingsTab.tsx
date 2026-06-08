@@ -170,7 +170,7 @@ export const SettingsTab: React.FC = () => {
 
   const handleDeleteAccount = async () => {
     const doubleConfirm = confirm(
-      'WARNING: Are you absolutely sure you want to delete your PChat account? This action is permanent and cannot be undone.'
+      'WARNING: Are you absolutely sure you want to delete your PVN Chat account? This action is permanent and cannot be undone.'
     );
     if (!doubleConfirm) return;
 
@@ -426,7 +426,7 @@ export const SettingsTab: React.FC = () => {
             className="w-full py-2.5 bg-red-500/10 hover:bg-red-500 hover:text-white border border-red-500/20 text-red-400 font-bold rounded-lg text-xs flex items-center justify-center gap-1.5 transition-all"
           >
             <Trash2 className="w-4 h-4" />
-            Delete PChat Account
+            Delete PVN Chat Account
           </button>
         </div>
 

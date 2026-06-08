@@ -78,7 +78,7 @@ export const CallScreen: React.FC = () => {
               <Phone className="w-4 h-4 fill-slate-950" />
             </span>
           </div>
-          <h2 className="text-2xl font-bold mb-1">{callInfo.callerName || 'PChat User'}</h2>
+          <h2 className="text-2xl font-bold mb-1">{callInfo.callerName || 'PVN Chat User'}</h2>
           <span className="text-sm font-semibold text-emerald-400 uppercase tracking-widest">
             {isRingingIn ? 'Incoming call...' : 'Calling connection...'}
           </span>

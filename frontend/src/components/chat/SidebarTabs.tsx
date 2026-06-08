@@ -50,9 +50,9 @@ export const SidebarTabs: React.FC<SidebarTabsProps> = ({ activeTab, setActiveTa
       <div className="flex flex-col items-center gap-6 w-full">
         <div 
           onClick={() => navigate('/')} 
-          className="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-400 to-teal-500 flex items-center justify-center font-bold text-slate-950 text-xl cursor-pointer shadow-lg shadow-emerald-500/10 hover:scale-105 transition-transform"
+          className="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-400 to-teal-500 flex items-center justify-center font-black text-slate-950 text-[13px] tracking-tighter cursor-pointer shadow-lg shadow-emerald-500/10 hover:scale-105 transition-transform"
         >
-          P
+          PVN
         </div>
 
         {/* Tab Items */}
