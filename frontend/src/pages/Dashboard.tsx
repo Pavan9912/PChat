@@ -5,6 +5,7 @@ import { RootState } from '../store';
 import { setActiveChat } from '../store/slices/chatSlice';
 import { SidebarTabs } from '../components/chat/SidebarTabs';
 import { ChatsTab } from '../components/dashboard/ChatsTab';
+import { StatusTab } from '../components/dashboard/StatusTab';
 import { FriendsTab } from '../components/dashboard/FriendsTab';
 import { GroupsTab } from '../components/dashboard/GroupsTab';
 import { NotificationsTab } from '../components/dashboard/NotificationsTab';
@@ -38,6 +39,7 @@ export const Dashboard: React.FC = () => {
         {/* Active Tab Panel viewer */}
         <div className="w-full md:w-80 border-r border-neutral-900 h-full">
           {activeTab === 'chats' && <ChatsTab />}
+          {activeTab === 'status' && <StatusTab />}
           {activeTab === 'friends' && <FriendsTab setActiveTab={setActiveTab} />}
           {activeTab === 'groups' && <GroupsTab setActiveTab={setActiveTab} />}
           {activeTab === 'notifications' && <NotificationsTab />}

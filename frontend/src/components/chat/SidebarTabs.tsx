@@ -1,6 +1,6 @@
 import React from 'react';
 import { useSelector, useDispatch } from 'react-redux';
-import { MessageSquare, Users, UserCheck, Bell, Settings, ShieldAlert, LogOut, Moon, Sun } from 'lucide-react';
+import { MessageSquare, Users, UserCheck, Bell, Settings, ShieldAlert, LogOut, Moon, Sun, CircleDot } from 'lucide-react';
 import { RootState } from '../../store';
 import { logoutSuccess } from '../../store/slices/authSlice';
 import { setActiveChat } from '../../store/slices/chatSlice';
@@ -35,6 +35,7 @@ export const SidebarTabs: React.FC<SidebarTabsProps> = ({ activeTab, setActiveTa
 
   const navItems = [
     { id: 'chats', icon: MessageSquare, label: 'Chats' },
+    { id: 'status', icon: CircleDot, label: 'Status' },
     { id: 'friends', icon: UserCheck, label: 'Friends' },
     { id: 'groups', icon: Users, label: 'Groups' },
     { id: 'notifications', icon: Bell, label: 'Alerts', badge: unreadCount },

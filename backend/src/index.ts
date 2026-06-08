@@ -20,6 +20,7 @@ import friendRoutes from './routes/friend.routes';
 import chatRoutes from './routes/chat.routes';
 import messageRoutes from './routes/message.routes';
 import adminRoutes from './routes/admin.routes';
+import statusRoutes from './routes/status.routes';
 
 // Load environment variables
 dotenv.config();
@@ -68,6 +69,7 @@ app.use('/api/friends', friendRoutes);
 app.use('/api/chats', chatRoutes);
 app.use('/api/messages', messageRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/status', statusRoutes);
 
 // Base route for server health check
 app.get('/', (req, res) => {
