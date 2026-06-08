@@ -4,6 +4,7 @@ import { User } from '../models/User';
 import { OTP } from '../models/OTP';
 import { generateToken } from '../utils/generateToken';
 import { AuthRequest } from '../middleware/auth.middleware';
+import { sendEmail } from '../utils/sendEmail';
 
 // @desc    Register a new user
 // @route   POST /api/auth/register
@@ -217,10 +218,30 @@ export const forgotPassword = async (req: Request, res: Response) => {
     user.resetPasswordExpires = new Date(Date.now() + 3600000); // 1 hour expiration
     await user.save();
 
-    // Log token to console for easy developer local verification (simulating emails)
-    console.log(`[PChat Security] Password Reset Request for ${email}`);
-    console.log(`[Token Code] ${resetToken}`);
-    console.log(`[Reset Link] http://localhost:5173/reset-password/${resetToken}`);
+    const resetUrl = `http://localhost:5173/reset-password/${resetToken}`;
+
+    // Send password recovery link via real email (falls back to console log simulation)
+    await sendEmail({
+      to: email,
+      subject: 'PChat Password Reset Request',
+      text: `To reset your PChat account password, please click on the following link or copy-paste it into your browser: ${resetUrl}`,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; padding: 25px; border: 1px solid #e5e7eb; border-radius: 12px; background-color: #ffffff;">
+          <h2 style="color: #10b981; text-align: center; margin-bottom: 20px; font-weight: bold;">Password Reset Request</h2>
+          <p style="color: #4b5563; font-size: 16px;">Hello,</p>
+          <p style="color: #4b5563; font-size: 16px; line-height: 1.5;">You are receiving this email because you (or someone else) requested a password reset for your PChat account.</p>
+          <p style="color: #4b5563; font-size: 16px; line-height: 1.5;">Please click the button below to choose a new password. This link will expire in 1 hour:</p>
+          <div style="text-align: center; margin: 30px 0;">
+            <a href="${resetUrl}" style="background-color: #10b981; color: #ffffff; padding: 12px 24px; text-decoration: none; font-weight: bold; border-radius: 8px; font-size: 16px; display: inline-block;">Reset Password</a>
+          </div>
+          <p style="color: #6b7280; font-size: 14px;">If the button above does not work, copy and paste this URL into your browser:</p>
+          <p style="color: #2563eb; font-size: 14px; word-break: break-all;"><a href="${resetUrl}">${resetUrl}</a></p>
+          <p style="color: #9ca3af; font-size: 12px; text-align: center; margin-top: 32px; border-t: 1px solid #f3f4f6; padding-top: 16px;">
+            If you did not make this request, you can safely ignore this email. Your password will remain unchanged.
+          </p>
+        </div>
+      `,
+    });
 
     return res.status(200).json({
       message: 'Password reset instructions have been logged to the server console. Use code to reset.',
@@ -336,13 +357,25 @@ export const sendOtp = async (req: Request, res: Response) => {
       otp: otpCode,
     });
 
-    // Log OTP code to server console for simulation
-    console.log(`\n========================================`);
-    console.log(`[PChat Security] Email Verification OTP`);
-    console.log(`To: ${formattedEmail}`);
-    console.log(`OTP Code: ${otpCode}`);
-    console.log(`Expires in: 5 minutes`);
-    console.log(`========================================\n`);
+    // Send the real email (falls back to console simulation if SMTP is not configured)
+    await sendEmail({
+      to: formattedEmail,
+      subject: 'PChat Security OTP Code',
+      text: `Your PChat verification OTP code is ${otpCode}. It expires in 5 minutes.`,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; padding: 25px; border: 1px solid #e5e7eb; border-radius: 12px; background-color: #ffffff;">
+          <h2 style="color: #10b981; text-align: center; margin-bottom: 20px; font-weight: bold;">PChat Verification</h2>
+          <p style="color: #4b5563; font-size: 16px;">Hello,</p>
+          <p style="color: #4b5563; font-size: 16px; line-height: 1.5;">Use the following secure OTP code to complete your signup or login request. This code is valid for 5 minutes:</p>
+          <div style="background-color: #f3f4f6; padding: 16px; border-radius: 8px; text-align: center; font-size: 28px; font-weight: bold; letter-spacing: 5px; color: #111827; margin: 24px 0; border: 1px dashed #d1d5db;">
+            ${otpCode}
+          </div>
+          <p style="color: #9ca3af; font-size: 12px; text-align: center; margin-top: 32px; border-t: 1px solid #f3f4f6; padding-top: 16px;">
+            If you did not request this OTP, you can safely ignore this email.
+          </p>
+        </div>
+      `,
+    });
 
     return res.status(200).json({ message: 'Verification OTP sent successfully to your email.' });
   } catch (error) {
