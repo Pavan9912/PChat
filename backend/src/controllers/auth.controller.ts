@@ -44,6 +44,7 @@ export const registerUser = async (req: Request, res: Response) => {
         isVerified: user.isVerified,
         hasChatLockPin: !!user.chatLockPin,
         blockedUsers: user.blockedUsers || [],
+        isOnline: user.isOnline,
         token,
       });
     } else {
@@ -98,6 +99,7 @@ export const loginUser = async (req: Request, res: Response) => {
       isVerified: user.isVerified,
       hasChatLockPin: !!user.chatLockPin,
       blockedUsers: user.blockedUsers || [],
+      isOnline: user.isOnline,
       token,
     });
   } catch (error: any) {
@@ -156,6 +158,7 @@ export const socialLogin = async (req: Request, res: Response) => {
       isVerified: user.isVerified,
       hasChatLockPin: !!user.chatLockPin,
       blockedUsers: user.blockedUsers || [],
+      isOnline: user.isOnline,
       token,
     });
   } catch (error: any) {
@@ -394,6 +397,7 @@ export const googleLogin = async (req: Request, res: Response) => {
       isVerified: user.isVerified,
       hasChatLockPin: !!user.chatLockPin,
       blockedUsers: user.blockedUsers || [],
+      isOnline: user.isOnline,
       token,
     });
   } catch (error: any) {

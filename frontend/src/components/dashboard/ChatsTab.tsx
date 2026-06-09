@@ -387,13 +387,13 @@ export const ChatsTab: React.FC = () => {
       {/* Main List */}
       <div className="flex-1 overflow-y-auto">
         {/* Online Users Horizontal Scroll */}
-        {!searchQuery.trim() && onlineUsersList && onlineUsersList.length > 0 && (
+        {!searchQuery.trim() && onlineUsersList && onlineUsersList.some(onlineUser => onlineUser.isOnline) && (
           <div className="px-4 py-3 border-b border-neutral-900/60 select-none bg-neutral-950/20">
             <span className="text-[10px] font-bold text-dark-secondary uppercase tracking-wider block mb-2.5">
               Online Now
             </span>
             <div className="flex gap-4 overflow-x-auto no-scrollbar pb-1.5 scroll-smooth">
-              {onlineUsersList.map((onlineUser) => (
+              {onlineUsersList.filter(onlineUser => onlineUser.isOnline).map((onlineUser) => (
                 <div
                   key={onlineUser._id}
                   onClick={() => handleStartChat(onlineUser._id)}

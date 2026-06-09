@@ -68,16 +68,6 @@ export const initSocket = (server: HttpServer): Server => {
     // Add socket to online users tracking map
     if (!onlineUsers.has(userId)) {
       onlineUsers.set(userId, new Set());
-      
-      // Update online status in database
-      try {
-        const fullUser = await User.findByIdAndUpdate(userId, { isOnline: true }, { new: true })
-          .select('name username email avatar bio statusMessage isOnline lastSeen');
-        // Broadcast online status to all sockets
-        io.emit('userStatus', { userId, isOnline: true, user: fullUser || undefined });
-      } catch (error) {
-        console.error(`Failed to update online status for user ${userId}:`, error);
-      }
     }
     onlineUsers.get(userId)!.add(socket.id);
 
@@ -94,6 +84,19 @@ export const initSocket = (server: HttpServer): Server => {
     socket.on('leaveChat', (chatId: string) => {
       socket.leave(chatId);
       console.log(`User ${user.username} left chat room: ${chatId}`);
+    });
+
+    // Toggle online status manually
+    socket.on('toggleOnline', async ({ isOnline }: { isOnline: boolean }) => {
+      try {
+        const fullUser = await User.findByIdAndUpdate(userId, { isOnline, lastSeen: new Date() }, { new: true })
+          .select('name username email avatar bio statusMessage isOnline lastSeen');
+        // Broadcast online status change to everyone
+        io.emit('userStatus', { userId, isOnline, lastSeen: fullUser?.lastSeen, user: fullUser || undefined });
+        console.log(`User ${user.username} toggled online status to: ${isOnline}`);
+      } catch (error) {
+        console.error(`Failed to toggle online status for user ${userId}:`, error);
+      }
     });
 
     // Handle typing status

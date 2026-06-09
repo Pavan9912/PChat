@@ -139,10 +139,14 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     });
 
     // User online indicators
-    socketInstance.on('userStatus', ({ userId, isOnline, lastSeen, user }) => {
-      const payload = { userId, isOnline, lastSeen: lastSeen ? new Date(lastSeen).toISOString() : undefined, user };
+    socketInstance.on('userStatus', ({ userId, isOnline, lastSeen, user: statusUser }) => {
+      const payload = { userId, isOnline, lastSeen: lastSeen ? new Date(lastSeen).toISOString() : undefined, user: statusUser };
       dispatch(setUserOnlineStatus(payload));
       dispatch(setFriendOnlineStatus(payload));
+
+      if (user && userId === user._id) {
+        dispatch(updateUserSuccess({ ...user, isOnline }));
+      }
     });
 
     // Friendship request socket notifications

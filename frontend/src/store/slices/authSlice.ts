@@ -13,6 +13,7 @@ export interface UserProfile {
   isVerified: boolean;
   hasChatLockPin?: boolean;
   blockedUsers?: string[];
+  isOnline?: boolean;
 }
 
 interface AuthState {
