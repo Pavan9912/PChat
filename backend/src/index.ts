@@ -23,7 +23,7 @@ import adminRoutes from './routes/admin.routes';
 import statusRoutes from './routes/status.routes';
 
 // Load environment variables
-dotenv.config();
+dotenv.config({ path: path.join(__dirname, '../.env') });
 
 if (!process.env.JWT_SECRET) {
   console.error('\n========================================');
