@@ -141,6 +141,9 @@ export const searchUsers = async (req: AuthRequest, res: Response) => {
     return res.status(200).json([]);
   }
 
+  // Escape special regular expression characters to prevent catastrophic backtracking (ReDoS)
+  const escapedQuery = query.replace(/[|\\{}()[\]^$+*?.]/g, '\\$&');
+
   try {
     // Exclude current user and anyone who has blocked the user or is blocked by the user
     const user = await User.findById(req.user._id);
@@ -150,9 +153,9 @@ export const searchUsers = async (req: AuthRequest, res: Response) => {
       _id: { $nin: exclusions },
       isBanned: false,
       $or: [
-        { name: { $regex: query, $options: 'i' } },
-        { username: { $regex: query, $options: 'i' } },
-        { email: { $regex: query, $options: 'i' } },
+        { name: { $regex: escapedQuery, $options: 'i' } },
+        { username: { $regex: escapedQuery, $options: 'i' } },
+        { email: { $regex: escapedQuery, $options: 'i' } },
       ],
     })
       .select('name username email avatar bio statusMessage isOnline lastSeen')

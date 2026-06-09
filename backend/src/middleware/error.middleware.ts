@@ -9,7 +9,15 @@ export const notFound = (req: Request, res: Response, next: NextFunction) => {
 
 // Global error handler
 export const errorHandler = (err: any, req: Request, res: Response, next: NextFunction) => {
-  const statusCode = res.statusCode === 200 ? 500 : res.statusCode;
+  let statusCode = res.statusCode === 200 ? 500 : res.statusCode;
+  
+  // Handle Multer upload errors
+  if (err.code === 'LIMIT_FILE_SIZE') {
+    statusCode = 400;
+    err.message = 'File size is too large. Maximum allowed size is 25MB.';
+  } else if (err.message && (err.message.includes('restricted') || err.message.includes('not permitted'))) {
+    statusCode = 400;
+  }
   
   res.status(statusCode).json({
     message: err.message || 'Internal Server Error',

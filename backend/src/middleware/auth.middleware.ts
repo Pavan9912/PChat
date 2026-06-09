@@ -19,7 +19,11 @@ export const protect = async (req: AuthRequest, res: Response, next: NextFunctio
   }
 
   try {
-    const decoded: any = jwt.verify(token, process.env.JWT_SECRET || 'pchat_secret_fallback_key');
+    const jwtSecret = process.env.JWT_SECRET;
+    if (!jwtSecret) {
+      return res.status(500).json({ message: 'Authentication configurations are misconfigured' });
+    }
+    const decoded: any = jwt.verify(token, jwtSecret);
     const user = await User.findById(decoded.userId);
 
     if (!user) {

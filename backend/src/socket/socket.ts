@@ -3,6 +3,7 @@ import { Server, Socket } from 'socket.io';
 import jwt from 'jsonwebtoken';
 import cookie from 'cookie';
 import { User } from '../models/User';
+import { Chat } from '../models/Chat';
 
 // Maps userId -> set of socketIds
 export const onlineUsers = new Map<string, Set<string>>();
@@ -40,7 +41,11 @@ export const initSocket = (server: HttpServer): Server => {
         return next(new Error('Authentication error: Token not provided'));
       }
 
-      const decoded: any = jwt.verify(token, process.env.JWT_SECRET || 'pchat_secret_fallback_key');
+      const jwtSecret = process.env.JWT_SECRET;
+      if (!jwtSecret) {
+        return next(new Error('Authentication error: JWT configuration error'));
+      }
+      const decoded: any = jwt.verify(token, jwtSecret);
       const user = await User.findById(decoded.userId).select('name username isBanned');
 
       if (!user) {
@@ -75,9 +80,24 @@ export const initSocket = (server: HttpServer): Server => {
     socket.join(userId);
 
     // Join specific Chat Room
-    socket.on('joinChat', (chatId: string) => {
-      socket.join(chatId);
-      console.log(`User ${user.username} joined chat room: ${chatId}`);
+    socket.on('joinChat', async (chatId: string) => {
+      try {
+        if (!chatId) return;
+        const chat = await Chat.findById(chatId);
+        if (!chat) {
+          console.warn(`[Socket Security] User ${user.username} tried to join non-existent chat: ${chatId}`);
+          return;
+        }
+        const isParticipant = chat.participants.some(p => p.toString() === userId);
+        if (!isParticipant) {
+          console.warn(`[Socket Security] User ${user.username} attempted to join chat ${chatId} without permission`);
+          return;
+        }
+        socket.join(chatId);
+        console.log(`User ${user.username} joined chat room: ${chatId}`);
+      } catch (err) {
+        console.error('Socket joinChat validation error:', err);
+      }
     });
 
     // Leave Chat Room

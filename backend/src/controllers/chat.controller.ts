@@ -365,6 +365,11 @@ export const pinChat = async (req: AuthRequest, res: Response) => {
     const chat = await Chat.findById(chatId);
     if (!chat) return res.status(404).json({ message: 'Chat not found' });
 
+    // Verify participant
+    if (!chat.participants.some((p) => p.toString() === req.user!._id.toString())) {
+      return res.status(403).json({ message: 'You are not a participant in this conversation' });
+    }
+
     if (!chat.isPinnedBy.includes(req.user._id as any)) {
       chat.isPinnedBy.push(req.user._id as any);
       await chat.save();
@@ -387,6 +392,11 @@ export const unpinChat = async (req: AuthRequest, res: Response) => {
     const chat = await Chat.findById(chatId);
     if (!chat) return res.status(404).json({ message: 'Chat not found' });
 
+    // Verify participant
+    if (!chat.participants.some((p) => p.toString() === req.user!._id.toString())) {
+      return res.status(403).json({ message: 'You are not a participant in this conversation' });
+    }
+
     chat.isPinnedBy = chat.isPinnedBy.filter((id) => id.toString() !== req.user!._id.toString());
     await chat.save();
 
@@ -407,6 +417,11 @@ export const archiveChat = async (req: AuthRequest, res: Response) => {
   try {
     const chat = await Chat.findById(chatId);
     if (!chat) return res.status(404).json({ message: 'Chat not found' });
+
+    // Verify participant
+    if (!chat.participants.some((p) => p.toString() === req.user!._id.toString())) {
+      return res.status(403).json({ message: 'You are not a participant in this conversation' });
+    }
 
     if (!chat.isArchivedBy.includes(req.user._id as any)) {
       chat.isArchivedBy.push(req.user._id as any);
@@ -429,6 +444,11 @@ export const unarchiveChat = async (req: AuthRequest, res: Response) => {
   try {
     const chat = await Chat.findById(chatId);
     if (!chat) return res.status(404).json({ message: 'Chat not found' });
+
+    // Verify participant
+    if (!chat.participants.some((p) => p.toString() === req.user!._id.toString())) {
+      return res.status(403).json({ message: 'You are not a participant in this conversation' });
+    }
 
     chat.isArchivedBy = chat.isArchivedBy.filter((id) => id.toString() !== req.user!._id.toString());
     await chat.save();

@@ -114,6 +114,10 @@ export const loginUser = async (req: Request, res: Response) => {
 export const socialLogin = async (req: Request, res: Response) => {
   const { name, email, avatar, googleId, facebookId } = req.body;
 
+  if (process.env.NODE_ENV === 'production') {
+    return res.status(403).json({ message: 'Direct social login requests are disabled in production' });
+  }
+
   if (!email) {
     return res.status(400).json({ message: 'Email is required from social provider' });
   }
@@ -222,8 +226,7 @@ export const forgotPassword = async (req: Request, res: Response) => {
     });
 
     return res.status(200).json({
-      message: 'Password reset instructions have been logged to the server console. Use code to reset.',
-      resetToken, // Return reset token so client can auto-fill or simulate emails directly
+      message: 'Password reset instructions have been logged to the server console.',
     });
   } catch (error: any) {
     console.error('Forgot password error:', error);

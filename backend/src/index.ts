@@ -25,6 +25,14 @@ import statusRoutes from './routes/status.routes';
 // Load environment variables
 dotenv.config();
 
+if (!process.env.JWT_SECRET) {
+  console.error('\n========================================');
+  console.error('[CRITICAL ERROR] JWT_SECRET is not defined in the environment!');
+  console.error('The application will exit to prevent insecure fallback authentication.');
+  console.error('========================================\n');
+  process.exit(1);
+}
+
 const app = express();
 const server = http.createServer(app);
 
