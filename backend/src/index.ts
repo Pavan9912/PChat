@@ -44,9 +44,10 @@ connectDB();
 const io = initSocket(server);
 app.set('socketio', io);
 
-const allowedOrigins = process.env.CLIENT_URL
+const baseOrigins = process.env.CLIENT_URL
   ? process.env.CLIENT_URL.split(',').map(url => url.trim())
-  : ['http://localhost:5173'];
+  : [];
+const allowedOrigins = Array.from(new Set([...baseOrigins, 'http://localhost:5173', 'http://127.0.0.1:5173']));
 
 app.use(
   cors({
