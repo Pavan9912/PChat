@@ -1,4 +1,5 @@
 import nodemailer from 'nodemailer';
+import { Resend } from 'resend';
 
 export interface SendEmailOptions {
   to: string;
@@ -8,6 +9,45 @@ export interface SendEmailOptions {
 }
 
 export const sendEmail = async (options: SendEmailOptions): Promise<void> => {
+  // 1. If RESEND_API_KEY is configured, use Resend API (bypasses direct SMTP ports, works on Render)
+  if (process.env.RESEND_API_KEY) {
+    try {
+      const resend = new Resend(process.env.RESEND_API_KEY);
+      // Resend free tier sends from onboarding@resend.dev unless a custom domain is verified
+      const fromEmail = process.env.EMAIL_FROM || 'onboarding@resend.dev';
+
+      // Print email simulation in development for quick developer access
+      if (process.env.NODE_ENV !== 'production') {
+        console.log(`\n========================================`);
+        console.log(`[PChatNow Security] Resend Email Simulation (Development Mode)`);
+        console.log(`To: ${options.to}`);
+        console.log(`Subject: ${options.subject}`);
+        console.log(`Body: ${options.text}`);
+        console.log(`========================================\n`);
+      }
+
+      const response = await resend.emails.send({
+        from: fromEmail,
+        to: options.to,
+        subject: options.subject,
+        html: options.html || `<p>${options.text}</p>`,
+      });
+
+      if (response.error) {
+        throw new Error(response.error.message);
+      }
+
+      console.log(`[PChatNow Email Utility] Email sent successfully via Resend API to ${options.to}`);
+      return;
+    } catch (error: any) {
+      console.error(`[PChatNow Email Utility] Failed to send email via Resend API:`, error.message);
+      if (process.env.NODE_ENV === 'production') {
+        throw error;
+      }
+    }
+  }
+
+  // 2. Otherwise, fallback to SMTP nodemailer
   const host = process.env.EMAIL_HOST;
   const port = process.env.EMAIL_PORT;
   const user = process.env.EMAIL_USER;
@@ -54,7 +94,7 @@ export const sendEmail = async (options: SendEmailOptions): Promise<void> => {
     };
 
     await transporter.sendMail(mailOptions);
-    console.log(`[PChatNow Email Utility] Email sent successfully to ${options.to}`);
+    console.log(`[PChatNow Email Utility] Email sent successfully via SMTP to ${options.to}`);
   } catch (error: any) {
     console.error(`[PChatNow Email Utility] Failed to send email to ${options.to} via SMTP:`, error.message);
     
