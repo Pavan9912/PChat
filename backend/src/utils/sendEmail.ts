@@ -9,7 +9,67 @@ export interface SendEmailOptions {
 }
 
 export const sendEmail = async (options: SendEmailOptions): Promise<void> => {
-  // 1. If RESEND_API_KEY is configured, use Resend API (bypasses direct SMTP ports, works on Render)
+  // 1. If BREVO_API_KEY is configured, use Brevo HTTP API (bypasses direct SMTP ports, works on Render, sends to any recipient)
+  if (process.env.BREVO_API_KEY) {
+    try {
+      const fromEmail = process.env.EMAIL_FROM || 'pavanpchatnowotp@gmail.com';
+      
+      // Parse email address and sender name
+      const emailMatch = fromEmail.match(/<([^>]+)>/) || [null, fromEmail];
+      const senderEmail = emailMatch[1] ? emailMatch[1].trim() : fromEmail.trim();
+      const senderName = fromEmail.includes('<') ? fromEmail.split('<')[0].replace(/"/g, '').trim() : 'PChat Security';
+
+      // Print email simulation in development for quick developer access
+      if (process.env.NODE_ENV !== 'production') {
+        console.log(`\n========================================`);
+        console.log(`[PChatNow Security] Brevo Email Simulation (Development Mode)`);
+        console.log(`To: ${options.to}`);
+        console.log(`Subject: ${options.subject}`);
+        console.log(`Body: ${options.text}`);
+        console.log(`========================================\n`);
+      }
+
+      const brevoPayload = {
+        sender: {
+          name: senderName,
+          email: senderEmail,
+        },
+        to: [
+          {
+            email: options.to,
+          },
+        ],
+        subject: options.subject,
+        htmlContent: options.html || `<p>${options.text}</p>`,
+      };
+
+      const response = await fetch('https://api.brevo.com/v3/smtp/email', {
+        method: 'POST',
+        headers: {
+          'accept': 'application/json',
+          'api-key': process.env.BREVO_API_KEY,
+          'content-type': 'application/json',
+        },
+        body: JSON.stringify(brevoPayload),
+      });
+
+      const responseData: any = await response.json();
+
+      if (!response.ok) {
+        throw new Error(responseData.message || `Brevo request failed with status ${response.status}`);
+      }
+
+      console.log(`[PChatNow Email Utility] Email sent successfully via Brevo API to ${options.to}`);
+      return;
+    } catch (error: any) {
+      console.error(`[PChatNow Email Utility] Failed to send email via Brevo API:`, error.message);
+      if (process.env.NODE_ENV === 'production') {
+        throw error;
+      }
+    }
+  }
+
+  // 2. If RESEND_API_KEY is configured, use Resend API (bypasses direct SMTP ports, works on Render)
   if (process.env.RESEND_API_KEY) {
     try {
       const resend = new Resend(process.env.RESEND_API_KEY);
