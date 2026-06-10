@@ -12,6 +12,8 @@ import {
   sendRegisterOtp,
   sendOtpGeneric,
   verifyOtpGeneric,
+  sendLoginOtp,
+  loginWithOtp,
 } from '../controllers/auth.controller';
 import {
   validateRegister,
@@ -32,6 +34,8 @@ router.post('/send-otp', authLimiter, validateSendOtp, validateFields, sendOtpGe
 router.post('/verify-otp', authLimiter, validateVerifyOtp, validateFields, verifyOtpGeneric);
 router.post('/register', authLimiter, validateRegister, validateFields, registerUser);
 router.post('/login', authLimiter, validateLogin, validateFields, loginUser);
+router.post('/login-otp', authLimiter, validateSendOtp, validateFields, sendLoginOtp);
+router.post('/login-otp-verify', authLimiter, validateVerifyOtp, validateFields, loginWithOtp);
 router.post('/social-login', socialLogin);
 router.post('/google-login', googleLogin);
 router.post('/logout', protect, logoutUser);
