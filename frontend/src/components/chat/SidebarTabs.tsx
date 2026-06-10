@@ -1,6 +1,6 @@
 import React from 'react';
 import { useSelector, useDispatch } from 'react-redux';
-import { MessageSquare, Users, UserCheck, Bell, Settings, ShieldAlert, LogOut, Moon, Sun, CircleDot, Wifi, WifiOff } from 'lucide-react';
+import { MessageSquare, Users, UserCheck, Bell, Settings, ShieldAlert, LogOut, Moon, Sun, CircleDot } from 'lucide-react';
 import { RootState } from '../../store';
 import { logoutSuccess } from '../../store/slices/authSlice';
 import { setActiveChat } from '../../store/slices/chatSlice';
@@ -22,10 +22,7 @@ export const SidebarTabs: React.FC<SidebarTabsProps> = ({ activeTab, setActiveTa
   const { mode } = useSelector((state: RootState) => state.theme);
   const { unreadCount } = useSelector((state: RootState) => state.notification);
 
-  const handleToggleOnline = () => {
-    if (!socket || !user) return;
-    socket.emit('toggleOnline', { isOnline: !user.isOnline });
-  };
+
 
   const apiHost = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
@@ -114,30 +111,6 @@ export const SidebarTabs: React.FC<SidebarTabsProps> = ({ activeTab, setActiveTa
 
       {/* Bottom Profile Details / Theme Toggle / Logout */}
       <div className="flex flex-col items-center gap-4 w-full px-2">
-        {/* Online Status Toggle */}
-        {user && (
-          <button
-            onClick={handleToggleOnline}
-            title={user.isOnline ? 'Go Offline' : 'Go Online'}
-            className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-205 relative group ${
-              user.isOnline
-                ? 'bg-emerald-500/15 text-emerald-400 hover:bg-emerald-500/25 border border-emerald-500/20'
-                : 'hover:bg-neutral-900 text-dark-secondary hover:text-white border border-transparent'
-            }`}
-          >
-            {user.isOnline ? (
-              <>
-                <Wifi className="w-5 h-5 animate-pulse text-emerald-400" />
-                <span className="absolute top-2.5 right-2.5 w-1.5 h-1.5 bg-emerald-400 rounded-full animate-ping" />
-              </>
-            ) : (
-              <WifiOff className="w-5 h-5 text-neutral-400" />
-            )}
-            <div className="absolute left-full ml-3 px-2 py-1 bg-slate-950 border border-neutral-800 text-xs font-semibold text-white rounded-md opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity z-50 shadow-xl whitespace-nowrap hidden md:block">
-              {user.isOnline ? 'Online (Visible)' : 'Offline (Hidden)'}
-            </div>
-          </button>
-        )}
 
         {/* Theme Toggle */}
         <button

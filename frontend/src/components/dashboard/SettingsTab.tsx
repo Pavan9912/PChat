@@ -12,10 +12,7 @@ export const SettingsTab: React.FC = () => {
   const { mode } = useSelector((state: RootState) => state.theme);
   const { socket } = useSocket();
 
-  const handleToggleOnline = () => {
-    if (!socket || !user) return;
-    socket.emit('toggleOnline', { isOnline: !user.isOnline });
-  };
+
 
   // Profile forms state
   const [name, setName] = useState(user?.name || '');
@@ -258,32 +255,7 @@ export const SettingsTab: React.FC = () => {
             </button>
           </div>
 
-          <div className="flex items-center justify-between">
-            <div className="flex flex-col">
-              <span className="text-sm font-semibold text-white">Online Status</span>
-              <span className="text-[10px] text-dark-secondary">Control if others see you as active</span>
-            </div>
-            <button
-              onClick={handleToggleOnline}
-              className={`py-1.5 px-3 border text-sm font-bold rounded-lg flex items-center gap-1.5 transition-colors ${
-                user?.isOnline
-                  ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20 hover:bg-emerald-500/20'
-                  : 'bg-dark-input hover:bg-neutral-800 border-neutral-800 text-white'
-              }`}
-            >
-              {user?.isOnline ? (
-                <>
-                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                  Online
-                </>
-              ) : (
-                <>
-                  <span className="w-2 h-2 rounded-full bg-neutral-500" />
-                  Offline
-                </>
-              )}
-            </button>
-          </div>
+
         </div>
 
         {/* Profile Details Edit */}
