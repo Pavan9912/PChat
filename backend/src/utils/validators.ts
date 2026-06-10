@@ -10,6 +10,15 @@ export const validateFields = (req: Request, res: Response, next: NextFunction) 
   next();
 };
 
+// Validation rules for Register OTP Request
+export const validateRegisterOtp = [
+  body('email')
+    .notEmpty().withMessage('Email Address is required')
+    .isEmail().withMessage('Please enter a valid email address')
+    .trim()
+    .normalizeEmail(),
+];
+
 // Validation rules for Register
 export const validateRegister = [
   body('name').notEmpty().withMessage('Full Name is required').trim(),
@@ -28,6 +37,11 @@ export const validateRegister = [
     }
     return true;
   }),
+  body('otp')
+    .notEmpty().withMessage('Verification code is required')
+    .isLength({ min: 6, max: 6 }).withMessage('Verification code must be exactly 6 digits')
+    .isNumeric().withMessage('Verification code must contain only numbers')
+    .trim(),
 ];
 
 // Validation rules for Login

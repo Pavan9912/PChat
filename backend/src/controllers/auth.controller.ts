@@ -1,21 +1,78 @@
 import { Request, Response } from 'express';
 import crypto from 'crypto';
 import { User } from '../models/User';
+import { Otp } from '../models/Otp';
 import { generateToken } from '../utils/generateToken';
 import { AuthRequest } from '../middleware/auth.middleware';
 import { sendEmail } from '../utils/sendEmail';
 import { OAuth2Client } from 'google-auth-library';
 
+// @desc    Send OTP code to email for user registration
+// @route   POST /api/auth/register-otp
+// @access  Public
+export const sendRegisterOtp = async (req: Request, res: Response) => {
+  const { email } = req.body;
+
+  try {
+    const emailLower = email.toLowerCase().trim();
+
+    // Check if user already exists
+    const userExists = await User.findOne({ email: emailLower });
+    if (userExists) {
+      return res.status(400).json({ message: 'User with this email already exists' });
+    }
+
+    // Generate a 6-digit random code
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes in the future
+
+    // Upsert the OTP in database
+    await Otp.findOneAndUpdate(
+      { email: emailLower },
+      { otp, expiresAt },
+      { upsert: true, new: true }
+    );
+
+    // Send OTP email
+    await sendEmail({
+      to: emailLower,
+      subject: 'PChatNow - Verify Your Email Address',
+      text: `Your email verification code is ${otp}. This code will expire in 10 minutes.`,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; padding: 25px; border: 1px solid #e5e7eb; border-radius: 12px; background-color: #ffffff;">
+          <h2 style="color: #10b981; text-align: center; margin-bottom: 20px; font-weight: bold;">Verify Your Email</h2>
+          <p style="color: #4b5563; font-size: 16px;">Hello,</p>
+          <p style="color: #4b5563; font-size: 16px; line-height: 1.5;">Thank you for choosing PChatNow. Please use the following One-Time Password (OTP) to complete your registration:</p>
+          <div style="text-align: center; margin: 30px 0;">
+            <span style="font-size: 32px; font-weight: bold; letter-spacing: 6px; color: #111827; background-color: #f3f4f6; padding: 12px 24px; border-radius: 8px; display: inline-block;">${otp}</span>
+          </div>
+          <p style="color: #ef4444; font-size: 14px; font-weight: 500; text-align: center;">This code is valid for 10 minutes. Do not share this code with anyone.</p>
+          <p style="color: #9ca3af; font-size: 12px; text-align: center; margin-top: 32px; border-t: 1px solid #f3f4f6; padding-top: 16px;">
+            If you did not request this verification code, you can safely ignore this email.
+          </p>
+        </div>
+      `,
+    });
+
+    return res.status(200).json({ message: 'Verification code sent successfully. Please check your email inbox.' });
+  } catch (error: any) {
+    console.error('Send registration OTP error:', error);
+    return res.status(500).json({ message: 'Internal Server Error' });
+  }
+};
+
 // @desc    Register a new user
 // @route   POST /api/auth/register
 // @access  Public
 export const registerUser = async (req: Request, res: Response) => {
-  const { name, username, email, password } = req.body;
+  const { name, username, email, password, otp } = req.body;
 
   try {
+    const emailLower = email.toLowerCase().trim();
+
     const checkQuery: any[] = [
       { username: username.toLowerCase().trim() },
-      { email: email.toLowerCase().trim() }
+      { email: emailLower }
     ];
 
     const userExists = await User.findOne({ $or: checkQuery });
@@ -23,14 +80,29 @@ export const registerUser = async (req: Request, res: Response) => {
       return res.status(400).json({ message: 'User with this email or username already exists' });
     }
 
+    // Verify OTP code
+    const otpRecord = await Otp.findOne({ email: emailLower });
+    if (!otpRecord) {
+      return res.status(400).json({ message: 'No verification code was sent for this email address' });
+    }
+    if (otpRecord.otp !== otp) {
+      return res.status(400).json({ message: 'Invalid verification code' });
+    }
+    if (otpRecord.expiresAt < new Date()) {
+      return res.status(400).json({ message: 'Verification code has expired' });
+    }
+
     const user = await User.create({
       name,
       username: username.toLowerCase().trim(),
-      email: email.toLowerCase().trim(),
+      email: emailLower,
       password,
     });
 
     if (user) {
+      // Delete the OTP record once verification succeeds
+      await Otp.deleteOne({ email: emailLower });
+
       const token = generateToken(res, user._id.toString());
       return res.status(201).json({
         _id: user._id,

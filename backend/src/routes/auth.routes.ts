@@ -9,18 +9,21 @@ import {
   changePassword,
   verifyEmail,
   googleLogin,
+  sendRegisterOtp,
 } from '../controllers/auth.controller';
 import {
   validateRegister,
   validateLogin,
   validatePasswordChange,
   validateFields,
+  validateRegisterOtp,
 } from '../utils/validators';
 import { protect } from '../middleware/auth.middleware';
 import { authLimiter } from '../middleware/rateLimiter.middleware';
 
 const router = Router();
 
+router.post('/register-otp', authLimiter, validateRegisterOtp, validateFields, sendRegisterOtp);
 router.post('/register', authLimiter, validateRegister, validateFields, registerUser);
 router.post('/login', authLimiter, validateLogin, validateFields, loginUser);
 router.post('/social-login', socialLogin);
