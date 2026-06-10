@@ -26,11 +26,11 @@ import statusRoutes from './routes/status.routes';
 dotenv.config({ path: path.join(__dirname, '../.env') });
 
 if (!process.env.JWT_SECRET) {
-  console.error('\n========================================');
-  console.error('[CRITICAL ERROR] JWT_SECRET is not defined in the environment!');
-  console.error('The application will exit to prevent insecure fallback authentication.');
-  console.error('========================================\n');
-  process.exit(1);
+  console.warn('\n========================================');
+  console.warn('[WARNING] JWT_SECRET is not defined in the environment!');
+  console.warn('Using fallback insecure local development secret key.');
+  console.warn('========================================\n');
+  process.env.JWT_SECRET = 'pchat_local_development_secret_key_12345';
 }
 
 const app = express();
