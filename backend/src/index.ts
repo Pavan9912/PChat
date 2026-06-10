@@ -1,4 +1,4 @@
-import express from 'express';
+import express, { Request, Response } from 'express';
 import http from 'http';
 import path from 'path';
 import fs from 'fs';
@@ -80,7 +80,7 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/status', statusRoutes);
 
 // Base route for server health check
-app.get('/', (req, res) => {
+app.get('/', (req: Request, res: Response) => {
   res.status(200).json({ status: 'success', message: 'PChatNow API Gateway running' });
 });
 
