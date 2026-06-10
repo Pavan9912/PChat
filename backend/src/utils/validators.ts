@@ -19,23 +19,12 @@ export const validateRegister = [
     .matches(/^[a-zA-Z0-9_]+$/).withMessage('Username can only contain letters, numbers and underscores')
     .trim(),
   body('email')
-    .optional({ checkFalsy: true })
+    .notEmpty().withMessage('Email Address is required')
     .isEmail().withMessage('Please enter a valid email address').trim().normalizeEmail(),
-  body('phoneNumber')
-    .optional({ checkFalsy: true })
-    .customSanitizer((value) => (value ? value.replace(/[\s\-\(\)]/g, '') : value))
-    .matches(/^\+?[1-9]\d{1,14}$/).withMessage('Please enter a valid phone number')
-    .trim(),
   body('password').isLength({ min: 6 }).withMessage('Password must be at least 6 characters'),
   body('confirmPassword').custom((value, { req }) => {
     if (value !== req.body.password) {
       throw new Error('Passwords do not match');
-    }
-    return true;
-  }),
-  body().custom((value, { req }) => {
-    if (!req.body.email && !req.body.phoneNumber) {
-      throw new Error('Either Email Address or Phone Number is required');
     }
     return true;
   }),
@@ -44,20 +33,10 @@ export const validateRegister = [
 // Validation rules for Login
 export const validateLogin = [
   body('email')
-    .notEmpty().withMessage('Email or Phone Number is required')
-    .customSanitizer((value) => {
-      if (!value) return value;
-      const isMaybePhone = /^\+?[0-9\s\-\(\)]+$/.test(value);
-      return isMaybePhone ? value.replace(/[\s\-\(\)]/g, '') : value;
-    })
-    .custom((value) => {
-      const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
-      const isPhone = /^\+?[1-9]\d{1,14}$/.test(value);
-      if (!isEmail && !isPhone) {
-        throw new Error('Please enter a valid email address or phone number');
-      }
-      return true;
-    }).trim(),
+    .notEmpty().withMessage('Email Address is required')
+    .isEmail().withMessage('Please enter a valid email address')
+    .trim()
+    .normalizeEmail(),
   body('password').notEmpty().withMessage('Password is required'),
 ];
 

@@ -10,11 +10,9 @@ export const RegisterForm: React.FC = () => {
   const dispatch = useDispatch();
   const { isLoading, error } = useSelector((state: RootState) => state.auth);
 
-  const [signupMethod, setSignupMethod] = useState<'email' | 'phone'>('email');
   const [name, setName] = useState('');
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
-  const [phoneNumber, setPhoneNumber] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [localError, setLocalError] = useState<string | null>(null);
@@ -34,25 +32,12 @@ export const RegisterForm: React.FC = () => {
       return;
     }
 
-    const payload: any = { name, username, password, confirmPassword };
-    if (signupMethod === 'email') {
-      if (!email) {
-        setLocalError('Email Address is required');
-        return;
-      }
-      payload.email = email;
-    } else {
-      if (!phoneNumber) {
-        setLocalError('Phone Number is required');
-        return;
-      }
-      const cleanPhone = phoneNumber.replace(/[\s\-\(\)]/g, '');
-      if (!/^\+?[1-9]\d{1,14}$/.test(cleanPhone)) {
-        setLocalError('Please enter a valid phone number (e.g. +123456789)');
-        return;
-      }
-      payload.phoneNumber = cleanPhone;
+    if (!email) {
+      setLocalError('Email Address is required');
+      return;
     }
+
+    const payload = { name, username, email, password, confirmPassword };
 
     dispatch(authStart());
     try {
@@ -79,32 +64,6 @@ export const RegisterForm: React.FC = () => {
       <div className="text-center mb-8">
         <h2 className="text-2xl font-bold tracking-tight text-white mb-2">Create Account</h2>
         <p className="text-sm text-dark-secondary">Join PChatNow to start messaging instantly.</p>
-      </div>
-
-      {/* Signup Method Tabs */}
-      <div className="flex border-b border-neutral-800 mb-6 text-xs font-semibold">
-        <button
-          type="button"
-          onClick={() => { setSignupMethod('email'); setLocalError(null); }}
-          className={`flex-1 py-3 text-center border-b-2 transition-all ${
-            signupMethod === 'email'
-              ? 'border-dark-accent text-dark-accent'
-              : 'border-transparent text-dark-secondary hover:text-white'
-          }`}
-        >
-          Email Address
-        </button>
-        <button
-          type="button"
-          onClick={() => { setSignupMethod('phone'); setLocalError(null); }}
-          className={`flex-1 py-3 text-center border-b-2 transition-all ${
-            signupMethod === 'phone'
-              ? 'border-dark-accent text-dark-accent'
-              : 'border-transparent text-dark-secondary hover:text-white'
-          }`}
-        >
-          Phone Number
-        </button>
       </div>
 
       {(error || localError) && (
@@ -143,35 +102,19 @@ export const RegisterForm: React.FC = () => {
           />
         </div>
 
-        {signupMethod === 'email' ? (
-          <div>
-            <label className="block text-xs font-semibold text-dark-secondary uppercase tracking-wider mb-2">
-              Email Address
-            </label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required={signupMethod === 'email'}
-              className="w-full px-4 py-2.5 bg-dark-input border border-neutral-800 text-white rounded-xl focus:border-dark-accent focus:outline-none transition-colors text-sm"
-              placeholder="name@example.com"
-            />
-          </div>
-        ) : (
-          <div>
-            <label className="block text-xs font-semibold text-dark-secondary uppercase tracking-wider mb-2">
-              Phone Number
-            </label>
-            <input
-              type="tel"
-              value={phoneNumber}
-              onChange={(e) => setPhoneNumber(e.target.value)}
-              required={signupMethod === 'phone'}
-              className="w-full px-4 py-2.5 bg-dark-input border border-neutral-800 text-white rounded-xl focus:border-dark-accent focus:outline-none transition-colors text-sm"
-              placeholder="+123456789"
-            />
-          </div>
-        )}
+        <div>
+          <label className="block text-xs font-semibold text-dark-secondary uppercase tracking-wider mb-2">
+            Email Address
+          </label>
+          <input
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+            className="w-full px-4 py-2.5 bg-dark-input border border-neutral-800 text-white rounded-xl focus:border-dark-accent focus:outline-none transition-colors text-sm"
+            placeholder="name@example.com"
+          />
+        </div>
 
         <div>
           <label className="block text-xs font-semibold text-dark-secondary uppercase tracking-wider mb-2">
