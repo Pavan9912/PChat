@@ -12,14 +12,24 @@ const getUniqueMessagesCount = async (timeFilter?: Date): Promise<number> => {
     const collections = await db.listCollections().toArray();
     const msgCollections = collections.filter(c => c.name.startsWith('messages_user_'));
     const uniqueIds = new Set<string>();
-    
-    for (const col of msgCollections) {
-      const partUserId = col.name.replace('messages_user_', '');
-      const modelInstance = getUserMessageModel(partUserId);
-      const query = timeFilter ? { createdAt: { $gte: timeFilter } } : {};
-      const msgs = await modelInstance.find(query, { _id: 1 });
-      for (const msg of msgs) {
-        uniqueIds.add(msg._id.toString());
+
+    const promises = msgCollections.map(async (col) => {
+      try {
+        const partUserId = col.name.replace('messages_user_', '');
+        const modelInstance = getUserMessageModel(partUserId);
+        const query = timeFilter ? { createdAt: { $gte: timeFilter } } : {};
+        const msgs = await modelInstance.find(query, { _id: 1 });
+        return msgs.map(m => m._id.toString());
+      } catch (err) {
+        console.error(`Error querying collection ${col.name}:`, err);
+        return [];
+      }
+    });
+
+    const results = await Promise.all(promises);
+    for (const ids of results) {
+      for (const id of ids) {
+        uniqueIds.add(id);
       }
     }
     return uniqueIds.size;

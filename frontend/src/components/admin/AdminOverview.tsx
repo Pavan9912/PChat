@@ -352,7 +352,7 @@ export const AdminOverview: React.FC = () => {
                         Report type: <span className="text-indigo-400 capitalize">{report.type}</span>
                       </span>
                       <span className="text-dark-secondary mt-0.5">
-                        Reported by: @{report.reporter.username}
+                        Reported by: @{report.reporter?.username || 'deleted_user'}
                       </span>
                     </div>
 
@@ -366,7 +366,7 @@ export const AdminOverview: React.FC = () => {
                     {report.type === 'message' && report.reportedMessage && (
                       <div className="p-3 bg-red-500/5 rounded-lg border border-red-500/10">
                         <span className="text-[9px] font-bold text-red-400 uppercase block mb-1">
-                          Reported Message Content (Sender: @{report.reportedMessage.sender.username})
+                          Reported Message Content (Sender: @{report.reportedMessage.sender?.username || 'deleted_user'})
                         </span>
                         <p className="text-white font-mono">{report.reportedMessage.content}</p>
                       </div>
@@ -375,11 +375,11 @@ export const AdminOverview: React.FC = () => {
                     {report.type === 'group' && report.reportedGroup && (
                       <div className="p-3 bg-red-500/5 rounded-lg border border-red-500/10 flex items-center gap-3">
                         <div className="w-10 h-10 bg-neutral-800 rounded-lg flex items-center justify-center font-bold text-white uppercase shrink-0">
-                          {report.reportedGroup.name.charAt(0)}
+                          {(report.reportedGroup.name || 'G').charAt(0)}
                         </div>
                         <div>
-                          <div className="font-semibold text-white text-xs">{report.reportedGroup.name}</div>
-                          <div className="text-[10px] text-dark-secondary mt-0.5">{report.reportedGroup.description}</div>
+                          <div className="font-semibold text-white text-xs">{report.reportedGroup.name || 'Deleted Group'}</div>
+                          <div className="text-[10px] text-dark-secondary mt-0.5">{report.reportedGroup.description || 'No description'}</div>
                         </div>
                       </div>
                     )}
