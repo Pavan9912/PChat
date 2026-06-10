@@ -71,13 +71,34 @@ export const initSocket = (server: HttpServer): Server => {
     console.log(`Socket Connected: User ${user.username} (${socket.id})`);
 
     // Add socket to online users tracking map
+    let isFirstConnection = false;
     if (!onlineUsers.has(userId)) {
       onlineUsers.set(userId, new Set());
+      isFirstConnection = true;
     }
     onlineUsers.get(userId)!.add(socket.id);
 
     // Join user to their own private room for direct notifications
     socket.join(userId);
+
+    // Set online status in DB on first connection and broadcast
+    if (isFirstConnection) {
+      try {
+        const fullUser = await User.findByIdAndUpdate(userId, { isOnline: true }, { new: true })
+          .select('name username email avatar bio statusMessage isOnline lastSeen');
+        if (fullUser) {
+          io.emit('userStatus', {
+            userId,
+            isOnline: true,
+            lastSeen: fullUser.lastSeen,
+            user: fullUser,
+          });
+          console.log(`User ${user.username} is now online (automatically set on connect)`);
+        }
+      } catch (error) {
+        console.error(`Failed to set online status for user ${userId} on connect:`, error);
+      }
+    }
 
     // Join specific Chat Room
     socket.on('joinChat', async (chatId: string) => {

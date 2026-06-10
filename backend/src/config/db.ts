@@ -30,6 +30,11 @@ export const connectDB = async () => {
     console.log(`Connecting to MongoDB at: ${connString}`);
     const conn = await mongoose.connect(connString, { serverSelectionTimeoutMS: 3000 });
     console.log(`MongoDB Connected: ${conn.connection.host}`);
+    
+    // Reset all users to offline on startup
+    await User.updateMany({}, { isOnline: false });
+    console.log('Reset all users online status to offline');
+    
     await seedAdmin();
   } catch (error: any) {
     console.warn(`Local MongoDB connection failed: ${error.message}. Starting MongoMemoryServer fallback...`);
@@ -43,6 +48,11 @@ export const connectDB = async () => {
       console.log(`Starting in-memory MongoDB server at: ${memoryUri}`);
       const conn = await mongoose.connect(memoryUri);
       console.log(`In-memory MongoDB Connected: ${conn.connection.host}`);
+      
+      // Reset all users to offline on startup
+      await User.updateMany({}, { isOnline: false });
+      console.log('Reset all users online status to offline');
+      
       await seedAdmin();
     } catch (innerError: any) {
       console.error(`In-memory MongoDB startup failed: ${innerError.message}`);
