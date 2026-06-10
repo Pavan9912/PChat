@@ -83,6 +83,10 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const { activeChat } = useSelector((state: RootState) => state.chat);
   
   const [socket, setSocket] = useState<Socket | null>(null);
+  const userRef = useRef(user);
+  useEffect(() => {
+    userRef.current = user;
+  }, [user]);
   const [callInfo, setCallInfo] = useState<CallInfo>({ status: 'idle', isIncoming: false });
   const [localStream, setLocalStream] = useState<MediaStream | null>(null);
   const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
@@ -121,7 +125,7 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       dispatch(addMessage(message));
 
       // Play alert chime if sender is not active logged in user
-      if (user && message.sender._id !== user._id) {
+      if (userRef.current && message.sender._id !== userRef.current._id) {
         playNotificationSound();
       }
     });
@@ -144,8 +148,8 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       dispatch(setUserOnlineStatus(payload));
       dispatch(setFriendOnlineStatus(payload));
 
-      if (user && userId === user._id) {
-        dispatch(updateUserSuccess({ ...user, isOnline }));
+      if (userRef.current && userId === userRef.current._id) {
+        dispatch(updateUserSuccess({ ...userRef.current, isOnline }));
       }
     });
 
@@ -162,13 +166,14 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
     // Real-time user block/unblock notifications
     socketInstance.on('userBlocked', ({ blockerId, blockedId }) => {
-      if (user) {
-        dispatch(handleUserBlocked({ blockerId, blockedId, currentUserId: user._id }));
-        if (blockerId === user._id) {
-          const currentBlocked = user.blockedUsers || [];
+      const currentUser = userRef.current;
+      if (currentUser) {
+        dispatch(handleUserBlocked({ blockerId, blockedId, currentUserId: currentUser._id }));
+        if (blockerId === currentUser._id) {
+          const currentBlocked = currentUser.blockedUsers || [];
           if (!currentBlocked.includes(blockedId)) {
             dispatch(updateUserSuccess({
-              ...user,
+              ...currentUser,
               blockedUsers: [...currentBlocked, blockedId]
             }));
           }
@@ -177,12 +182,13 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     });
 
     socketInstance.on('userUnblocked', ({ blockerId, unblockedId }) => {
-      if (user) {
-        dispatch(handleUserUnblocked({ blockerId, unblockedId, currentUserId: user._id }));
-        if (blockerId === user._id) {
-          const currentBlocked = user.blockedUsers || [];
+      const currentUser = userRef.current;
+      if (currentUser) {
+        dispatch(handleUserUnblocked({ blockerId, unblockedId, currentUserId: currentUser._id }));
+        if (blockerId === currentUser._id) {
+          const currentBlocked = currentUser.blockedUsers || [];
           dispatch(updateUserSuccess({
-            ...user,
+            ...currentUser,
             blockedUsers: currentBlocked.filter(id => id !== unblockedId)
           }));
         }
@@ -255,7 +261,7 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       socketInstance.disconnect();
       cleanupCall();
     };
-  }, [token, user]);
+  }, [token]);
 
   // Handle room joining/leaving when activeChat changes
   useEffect(() => {
