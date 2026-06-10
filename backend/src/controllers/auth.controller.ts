@@ -33,8 +33,8 @@ export const sendRegisterOtp = async (req: Request, res: Response) => {
       { upsert: true, new: true }
     );
 
-    // Send OTP email
-    await sendEmail({
+    // Send OTP email asynchronously in the background
+    sendEmail({
       to: emailLower,
       subject: 'PChatNow - Verify Your Email Address',
       text: `Your email verification code is ${otp}. This code will expire in 10 minutes.`,
@@ -52,6 +52,8 @@ export const sendRegisterOtp = async (req: Request, res: Response) => {
           </p>
         </div>
       `,
+    }).catch(err => {
+      console.error('[PChatNow] Async registration OTP email send failed:', err.message);
     });
 
     return res.status(200).json({ message: 'Verification code sent successfully. Please check your email inbox.' });
@@ -266,8 +268,8 @@ export const forgotPassword = async (req: Request, res: Response) => {
 
     const resetUrl = `http://localhost:5173/reset-password/${resetToken}`;
 
-    // Send password recovery link via real email (falls back to console log simulation)
-    await sendEmail({
+    // Send password recovery link via real email asynchronously in the background
+    sendEmail({
       to: email,
       subject: 'PChatNow Password Reset Request',
       text: `To reset your PChatNow account password, please click on the following link or copy-paste it into your browser: ${resetUrl}`,
@@ -287,6 +289,8 @@ export const forgotPassword = async (req: Request, res: Response) => {
           </p>
         </div>
       `,
+    }).catch(err => {
+      console.error('[PChatNow] Async forgot password email send failed:', err.message);
     });
 
     return res.status(200).json({
@@ -492,8 +496,8 @@ export const sendOtpGeneric = async (req: Request, res: Response) => {
       { upsert: true, new: true }
     );
 
-    // Send OTP email
-    await sendEmail({
+    // Send OTP email asynchronously in the background
+    sendEmail({
       to: emailLower,
       subject: 'PChatNow - Verification Code',
       text: `Your verification code is ${otp}. This code will expire in 5 minutes.`,
@@ -511,6 +515,8 @@ export const sendOtpGeneric = async (req: Request, res: Response) => {
           </p>
         </div>
       `,
+    }).catch(err => {
+      console.error('[PChatNow] Async generic OTP email send failed:', err.message);
     });
 
     return res.status(200).json({ message: 'Verification code sent successfully. Please check your email inbox.' });
