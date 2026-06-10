@@ -8,6 +8,9 @@ import { Chat } from '../models/Chat';
 // Maps userId -> set of socketIds
 export const onlineUsers = new Map<string, Set<string>>();
 
+// Maps userId -> NodeJS.Timeout for debouncing disconnect/offline updates
+export const pendingDisconnects = new Map<string, NodeJS.Timeout>();
+
 export const getReceiverSockets = (userId: string): string[] => {
   const sockets = onlineUsers.get(userId.toString());
   return sockets ? Array.from(sockets) : [];
@@ -70,6 +73,14 @@ export const initSocket = (server: HttpServer): Server => {
 
     console.log(`Socket Connected: User ${user.username} (${socket.id})`);
 
+    // Cancel any pending offline/disconnect timeout
+    const pendingTimer = pendingDisconnects.get(userId);
+    if (pendingTimer) {
+      clearTimeout(pendingTimer);
+      pendingDisconnects.delete(userId);
+      console.log(`User ${user.username} reconnected before timeout. Offline update cancelled.`);
+    }
+
     // Add socket to online users tracking map
     let isFirstConnection = false;
     if (!onlineUsers.has(userId)) {
@@ -82,7 +93,8 @@ export const initSocket = (server: HttpServer): Server => {
     socket.join(userId);
 
     // Set online status in DB on first connection and broadcast
-    if (isFirstConnection) {
+    // Only perform DB update if this is a fresh connection and there wasn't a pending offline timer
+    if (isFirstConnection && !pendingTimer) {
       try {
         const fullUser = await User.findByIdAndUpdate(userId, { isOnline: true }, { new: true })
           .select('name username email avatar bio statusMessage isOnline lastSeen');
@@ -130,6 +142,13 @@ export const initSocket = (server: HttpServer): Server => {
     // Toggle online status manually
     socket.on('toggleOnline', async ({ isOnline }: { isOnline: boolean }) => {
       try {
+        // Cancel any pending disconnect timer if they manually toggle status
+        const pendingTimer = pendingDisconnects.get(userId);
+        if (pendingTimer) {
+          clearTimeout(pendingTimer);
+          pendingDisconnects.delete(userId);
+        }
+
         const fullUser = await User.findByIdAndUpdate(userId, { isOnline, lastSeen: new Date() }, { new: true })
           .select('name username email avatar bio statusMessage isOnline lastSeen');
         // Broadcast online status change to everyone
@@ -249,23 +268,30 @@ export const initSocket = (server: HttpServer): Server => {
         if (userSockets.size === 0) {
           onlineUsers.delete(userId);
           
-          // Set offline status in DB
-          try {
-            const fullUser = await User.findByIdAndUpdate(userId, {
-              isOnline: false,
-              lastSeen: new Date(),
-            }, { new: true })
-              .select('name username email avatar bio statusMessage isOnline lastSeen');
-            // Broadcast offline status
-            io.emit('userStatus', {
-              userId,
-              isOnline: false,
-              lastSeen: fullUser?.lastSeen || new Date(),
-              user: fullUser || undefined,
-            });
-          } catch (error) {
-            console.error(`Failed to update offline status for user ${userId}:`, error);
-          }
+          // Debounce setting offline to handle quick page refreshes and network changes
+          const timer = setTimeout(async () => {
+            pendingDisconnects.delete(userId);
+            // Set offline status in DB
+            try {
+              const fullUser = await User.findByIdAndUpdate(userId, {
+                isOnline: false,
+                lastSeen: new Date(),
+              }, { new: true })
+                .select('name username email avatar bio statusMessage isOnline lastSeen');
+              // Broadcast offline status
+              io.emit('userStatus', {
+                userId,
+                isOnline: false,
+                lastSeen: fullUser?.lastSeen || new Date(),
+                user: fullUser || undefined,
+              });
+              console.log(`User ${user.username} is now offline (after debounce delay)`);
+            } catch (error) {
+              console.error(`Failed to update offline status for user ${userId}:`, error);
+            }
+          }, 5000); // 5 seconds debounce duration
+
+          pendingDisconnects.set(userId, timer);
         }
       }
     });
