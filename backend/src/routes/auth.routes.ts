@@ -10,6 +10,8 @@ import {
   verifyEmail,
   googleLogin,
   sendRegisterOtp,
+  sendOtpGeneric,
+  verifyOtpGeneric,
 } from '../controllers/auth.controller';
 import {
   validateRegister,
@@ -17,6 +19,8 @@ import {
   validatePasswordChange,
   validateFields,
   validateRegisterOtp,
+  validateSendOtp,
+  validateVerifyOtp,
 } from '../utils/validators';
 import { protect } from '../middleware/auth.middleware';
 import { authLimiter } from '../middleware/rateLimiter.middleware';
@@ -24,6 +28,8 @@ import { authLimiter } from '../middleware/rateLimiter.middleware';
 const router = Router();
 
 router.post('/register-otp', authLimiter, validateRegisterOtp, validateFields, sendRegisterOtp);
+router.post('/send-otp', authLimiter, validateSendOtp, validateFields, sendOtpGeneric);
+router.post('/verify-otp', authLimiter, validateVerifyOtp, validateFields, verifyOtpGeneric);
 router.post('/register', authLimiter, validateRegister, validateFields, registerUser);
 router.post('/login', authLimiter, validateLogin, validateFields, loginUser);
 router.post('/social-login', socialLogin);

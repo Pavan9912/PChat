@@ -36,6 +36,12 @@ export const LandingPage: React.FC = () => {
         </div>
         <div className="flex items-center gap-4">
           <button
+            onClick={() => navigate('/otp-demo')}
+            className="text-sm font-medium text-emerald-400 hover:text-emerald-300 transition-colors"
+          >
+            OTP Demo
+          </button>
+          <button
             onClick={() => navigate('/login')}
             className="text-sm font-medium text-slate-400 hover:text-white transition-colors"
           >
