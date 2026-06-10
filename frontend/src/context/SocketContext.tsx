@@ -125,7 +125,8 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       dispatch(addMessage(message));
 
       // Play alert chime if sender is not active logged in user
-      if (userRef.current && message.sender._id !== userRef.current._id) {
+      const senderId = typeof message.sender === 'object' && message.sender !== null ? (message.sender._id || message.sender.id) : message.sender;
+      if (userRef.current && senderId !== userRef.current._id) {
         playNotificationSound();
       }
     });

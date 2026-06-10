@@ -26,7 +26,8 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
   onReport,
 }) => {
   const { user } = useSelector((state: RootState) => state.auth);
-  const isSelf = msg.sender._id === user?._id;
+  const senderId = typeof msg.sender === 'object' && msg.sender !== null ? (msg.sender._id || (msg.sender as any).id) : msg.sender;
+  const isSelf = senderId === user?._id;
 
   const [showDropdown, setShowDropdown] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -147,7 +148,15 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
       {msg.repliedTo && (
         <div className="bg-neutral-900/60 p-2.5 rounded-t-xl border border-neutral-800 border-b-transparent text-[11px] text-slate-300 w-full flex flex-col gap-0.5 pointer-events-none">
           <span className="font-bold text-dark-accent">
-            Replying to {msg.repliedTo.sender._id === user?._id ? 'yourself' : msg.repliedTo.sender.name}
+            Replying to {
+              (typeof msg.repliedTo.sender === 'object' && msg.repliedTo.sender !== null
+                ? (msg.repliedTo.sender._id || (msg.repliedTo.sender as any).id)
+                : msg.repliedTo.sender) === user?._id
+                ? 'yourself'
+                : (typeof msg.repliedTo.sender === 'object' && msg.repliedTo.sender !== null
+                    ? msg.repliedTo.sender.name
+                    : 'User')
+            }
           </span>
           <span className="truncate max-w-xs">{msg.repliedTo.content}</span>
         </div>

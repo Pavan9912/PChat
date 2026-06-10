@@ -219,7 +219,8 @@ export const ChatsTab: React.FC = () => {
   };
 
   const getMessageReceipt = (msg: any) => {
-    if (msg.sender._id !== user?._id) return null;
+    const senderId = typeof msg.sender === 'object' && msg.sender !== null ? (msg.sender._id || msg.sender.id) : msg.sender;
+    if (senderId !== user?._id) return null;
     const isRead = msg.readBy.length > 1; // Read by someone other than sender
     if (isRead) {
       return <CheckCheck className="w-4 h-4 text-emerald-400 shrink-0" />;
