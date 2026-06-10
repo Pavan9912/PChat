@@ -332,21 +332,27 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   };
 
   const createPeerConnection = (targetUserId: string, stream: MediaStream | null) => {
-    const pc = new RTCPeerConnection({
-      iceServers: [
-        { urls: 'stun:stun.l.google.com:19302' },
-        { urls: 'stun:stun1.l.google.com:19302' },
-        { urls: 'stun:stun2.l.google.com:19302' },
-        { urls: 'stun:stun3.l.google.com:19302' },
-        { urls: 'stun:stun4.l.google.com:19302' },
-        // For production, configure custom TURN servers here to relay media behind symmetric firewalls:
-        // {
-        //   urls: 'turn:YOUR_TURN_SERVER_DOMAIN_OR_IP:3478',
-        //   username: 'YOUR_TURN_USERNAME',
-        //   credential: 'YOUR_TURN_PASSWORD'
-        // }
-      ],
-    });
+    const turnUrl = import.meta.env.VITE_TURN_URL;
+    const turnUsername = import.meta.env.VITE_TURN_USERNAME;
+    const turnCredential = import.meta.env.VITE_TURN_CREDENTIAL;
+
+    const iceServers: any[] = [
+      { urls: 'stun:stun.l.google.com:19302' },
+      { urls: 'stun:stun1.l.google.com:19302' },
+      { urls: 'stun:stun2.l.google.com:19302' },
+      { urls: 'stun:stun3.l.google.com:19302' },
+      { urls: 'stun:stun4.l.google.com:19302' },
+    ];
+
+    if (turnUrl && turnUsername && turnCredential) {
+      iceServers.push({
+        urls: turnUrl,
+        username: turnUsername,
+        credential: turnCredential,
+      });
+    }
+
+    const pc = new RTCPeerConnection({ iceServers });
 
     if (stream) {
       stream.getTracks().forEach((track) => {
