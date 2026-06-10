@@ -30,25 +30,26 @@ export const AdminOverview: React.FC = () => {
       // 1. Fetch Analytics overview
       const statsRes = await fetch(`${apiHost}/api/admin/analytics`, { headers });
       const statsData = await statsRes.json();
-      if (statsRes.ok) dispatch(fetchAnalyticsSuccess(statsData));
+      if (!statsRes.ok) throw new Error(statsData.message || 'Failed to fetch analytics metrics');
+      dispatch(fetchAnalyticsSuccess(statsData));
 
       // 2. Fetch Users
       const usersRes = await fetch(`${apiHost}/api/admin/users?page=1&limit=50`, { headers });
       const usersData = await usersRes.json();
-      if (usersRes.ok) {
-        dispatch(
-          fetchUsersSuccess({
-            users: usersData.users,
-            currentPage: usersData.currentPage,
-            totalPages: usersData.totalPages,
-          })
-        );
-      }
+      if (!usersRes.ok) throw new Error(usersData.message || 'Failed to fetch users list');
+      dispatch(
+        fetchUsersSuccess({
+          users: usersData.users,
+          currentPage: usersData.currentPage,
+          totalPages: usersData.totalPages,
+        })
+      );
 
       // 3. Fetch Reports
       const reportsRes = await fetch(`${apiHost}/api/admin/reports`, { headers });
       const reportsData = await reportsRes.json();
-      if (reportsRes.ok) dispatch(fetchReportsSuccess(reportsData));
+      if (!reportsRes.ok) throw new Error(reportsData.message || 'Failed to fetch abuse reports');
+      dispatch(fetchReportsSuccess(reportsData));
     } catch (err: any) {
       dispatch(adminFailure(err.message || 'Failed to fetch admin data'));
     }
@@ -180,6 +181,12 @@ export const AdminOverview: React.FC = () => {
 
       {/* Main Content scrollable panel */}
       <div className="flex-1 overflow-y-auto p-4 select-text">
+        {error && (
+          <div className="mb-6 p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm flex items-center gap-2">
+            <AlertCircle className="w-5 h-5 shrink-0" />
+            <span>{error}</span>
+          </div>
+        )}
         {adminTab === 'stats' && analytics && (
           <div className="space-y-6 animate-fade-in">
             {/* Stats Metrics Cards */}

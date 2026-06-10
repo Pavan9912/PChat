@@ -179,6 +179,15 @@ export const createReport = async (req: any, res: Response) => {
 // @access  Private/Admin
 export const getReports = async (req: Request, res: Response) => {
   try {
+    // Ensure all dynamic user message models are registered before populating
+    const reportModels = await Report.distinct('reportedMessageModelName');
+    for (const modelName of reportModels) {
+      if (modelName && modelName.startsWith('messages_user_')) {
+        const userId = modelName.replace('messages_user_', '');
+        getUserMessageModel(userId);
+      }
+    }
+
     const reports = await Report.find()
       .populate('reporter', 'name username')
       .populate('reportedUser', 'name username avatar isBanned')
