@@ -13,8 +13,19 @@ export const sendEmail = async (options: SendEmailOptions): Promise<void> => {
   if (process.env.RESEND_API_KEY) {
     try {
       const resend = new Resend(process.env.RESEND_API_KEY);
-      // Resend free tier sends from onboarding@resend.dev unless a custom domain is verified
-      const fromEmail = process.env.EMAIL_FROM || 'onboarding@resend.dev';
+      let fromEmail = process.env.EMAIL_FROM || 'onboarding@resend.dev';
+
+      // Resend does not allow sending from public email domains (gmail, yahoo, etc.).
+      // We extract the email address and check its domain to automatically fallback to onboarding@resend.dev if needed.
+      const emailMatch = fromEmail.match(/<([^>]+)>/) || [null, fromEmail];
+      const actualFromAddress = emailMatch[1] ? emailMatch[1].trim() : fromEmail.trim();
+      const domain = actualFromAddress.split('@')[1];
+      const publicDomains = ['gmail.com', 'yahoo.com', 'outlook.com', 'hotmail.com', 'aol.com', 'icloud.com'];
+      
+      if (domain && publicDomains.includes(domain.toLowerCase())) {
+        console.warn(`[PChatNow Email Utility] Resend does not support sending from public domain (${domain}). Overriding sender to onboarding@resend.dev.`);
+        fromEmail = 'onboarding@resend.dev';
+      }
 
       // Print email simulation in development for quick developer access
       if (process.env.NODE_ENV !== 'production') {
