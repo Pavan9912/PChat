@@ -16,6 +16,7 @@ import {
   joinGroupByInviteCode,
   lockChat,
   unlockChat,
+  getTurnCredentials,
 } from '../controllers/chat.controller';
 import { protect } from '../middleware/auth.middleware';
 import { upload } from '../middleware/upload.middleware';
@@ -27,7 +28,9 @@ router.use(protect); // All routes require JWT authentication
 router.post('/', createChat);
 router.post('/group', createGroup);
 router.get('/', getChats);
+router.get('/turn-credentials', getTurnCredentials);
 router.get('/:chatId', getChatDetails);
+
 router.put('/group/:chatId', upload.single('avatar'), updateGroupSettings);
 router.post('/group/:chatId/invite', inviteToGroup);
 router.delete('/group/:chatId/remove/:userId', removeFromGroup);

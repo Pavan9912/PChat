@@ -83,6 +83,7 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const { activeChat } = useSelector((state: RootState) => state.chat);
   
   const [socket, setSocket] = useState<Socket | null>(null);
+  const [turnServers, setTurnServers] = useState<any[]>([]);
   const userRef = useRef(user);
   useEffect(() => {
     userRef.current = user;
@@ -100,6 +101,30 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const queuedCandidatesRef = useRef<any[]>([]);
 
   const socketUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+
+  // Fetch TURN credentials once authenticated to avoid dynamic calling lag
+  useEffect(() => {
+    if (!token) {
+      setTurnServers([]);
+      return;
+    }
+    const fetchTurnCredentials = async () => {
+      try {
+        const res = await fetch(`${socketUrl}/api/chats/turn-credentials`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (Array.isArray(data)) {
+            setTurnServers(data);
+          }
+        }
+      } catch (err) {
+        console.error('Failed to pre-fetch TURN credentials from backend:', err);
+      }
+    };
+    fetchTurnCredentials();
+  }, [token, socketUrl]);
 
   useEffect(() => {
     if (!token) {
@@ -331,27 +356,61 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }
   };
 
-  const createPeerConnection = (targetUserId: string, stream: MediaStream | null) => {
-    const turnUrl = import.meta.env.VITE_TURN_URL;
-    const turnUsername = import.meta.env.VITE_TURN_USERNAME;
-    const turnCredential = import.meta.env.VITE_TURN_CREDENTIAL;
+  const getIceServers = async (): Promise<any[]> => {
+    if (turnServers && turnServers.length > 0) {
+      return [
+        { urls: 'stun:stun.l.google.com:19302' },
+        { urls: 'stun:stun1.l.google.com:19302' },
+        { urls: 'stun:stun2.l.google.com:19302' },
+        { urls: 'stun:stun3.l.google.com:19302' },
+        { urls: 'stun:stun4.l.google.com:19302' },
+        ...turnServers,
+      ];
+    }
 
-    const iceServers: any[] = [
+    try {
+      const res = await fetch(`${socketUrl}/api/chats/turn-credentials`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data) && data.length > 0) {
+          setTurnServers(data);
+          return [
+            { urls: 'stun:stun.l.google.com:19302' },
+            { urls: 'stun:stun1.l.google.com:19302' },
+            { urls: 'stun:stun2.l.google.com:19302' },
+            { urls: 'stun:stun3.l.google.com:19302' },
+            { urls: 'stun:stun4.l.google.com:19302' },
+            ...data,
+          ];
+        }
+      }
+    } catch (err) {
+      console.error('Failed to fetch TURN credentials on-demand:', err);
+    }
+
+    const fallbackServers: any[] = [
       { urls: 'stun:stun.l.google.com:19302' },
       { urls: 'stun:stun1.l.google.com:19302' },
       { urls: 'stun:stun2.l.google.com:19302' },
       { urls: 'stun:stun3.l.google.com:19302' },
       { urls: 'stun:stun4.l.google.com:19302' },
     ];
-
+    const turnUrl = import.meta.env.VITE_TURN_URL;
+    const turnUsername = import.meta.env.VITE_TURN_USERNAME;
+    const turnCredential = import.meta.env.VITE_TURN_CREDENTIAL;
     if (turnUrl && turnUsername && turnCredential) {
-      iceServers.push({
+      fallbackServers.push({
         urls: turnUrl,
         username: turnUsername,
         credential: turnCredential,
       });
     }
+    return fallbackServers;
+  };
 
+  const createPeerConnection = (targetUserId: string, stream: MediaStream | null, iceServers: any[]) => {
     const pc = new RTCPeerConnection({ iceServers });
 
     if (stream) {
@@ -407,7 +466,8 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       isIncoming: false,
     });
 
-    const pc = createPeerConnection(targetUserId, stream);
+    const iceServers = await getIceServers();
+    const pc = createPeerConnection(targetUserId, stream, iceServers);
 
     try {
       const offer = await pc.createOffer();
@@ -439,7 +499,8 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       return;
     }
 
-    const pc = createPeerConnection(callInfo.targetUserId, stream);
+    const iceServers = await getIceServers();
+    const pc = createPeerConnection(callInfo.targetUserId, stream, iceServers);
 
     try {
       await pc.setRemoteDescription(new RTCSessionDescription(offerDataRef.current));

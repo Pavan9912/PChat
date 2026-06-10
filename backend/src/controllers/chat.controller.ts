@@ -583,3 +583,33 @@ export const unlockChat = async (req: AuthRequest, res: Response) => {
     return res.status(500).json({ message: 'Internal Server Error' });
   }
 };
+
+// @desc    Get TURN Server credentials dynamically from Metered.ca
+// @route   GET /api/chats/turn-credentials
+// @access  Private
+export const getTurnCredentials = async (req: AuthRequest, res: Response) => {
+  if (!req.user) return res.status(401).json({ message: 'Not authenticated' });
+
+  const domain = process.env.METERED_DOMAIN;
+  const apiKey = process.env.METERED_API_KEY;
+
+  if (!domain || !apiKey) {
+    console.error('Metered TURN credentials config is missing on the server');
+    return res.status(200).json([]);
+  }
+
+  try {
+    const response = await fetch(`https://${domain}/api/v1/turn/credentials?apiKey=${apiKey}`);
+    if (!response.ok) {
+      const errText = await response.text();
+      console.error('Metered API error:', response.status, errText);
+      return res.status(200).json([]);
+    }
+    const data = await response.json();
+    return res.status(200).json(data);
+  } catch (error) {
+    console.error('Failed to fetch TURN credentials from Metered:', error);
+    return res.status(200).json([]);
+  }
+};
+
