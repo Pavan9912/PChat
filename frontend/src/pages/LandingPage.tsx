@@ -1,12 +1,13 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, Mail, X } from 'lucide-react';
 import { RootState } from '../store';
 
 export const LandingPage: React.FC = () => {
   const navigate = useNavigate();
   const { user } = useSelector((state: RootState) => state.auth);
+  const [showSupportModal, setShowSupportModal] = useState(false);
 
   const handleCTA = () => {
     if (user) {
@@ -104,10 +105,78 @@ export const LandingPage: React.FC = () => {
           <div className="flex gap-6">
             <a href="#" className="hover:text-slate-300">Privacy Policy</a>
             <a href="#" className="hover:text-slate-300">Terms of Service</a>
-            <a href="#" className="hover:text-slate-300">Contact Support</a>
+            <button
+              onClick={() => setShowSupportModal(true)}
+              className="hover:text-slate-300 transition-colors"
+            >
+              Contact Support
+            </button>
           </div>
         </div>
       </footer>
+
+      {/* Contact Support Modal */}
+      {showSupportModal && (
+        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4 animate-fade-in animate-duration-200">
+          <div className="bg-neutral-900 border border-neutral-800 rounded-2xl w-full max-w-sm p-6 shadow-2xl relative select-none">
+            <button
+              onClick={() => setShowSupportModal(false)}
+              className="absolute right-4 top-4 p-1.5 hover:bg-neutral-850 rounded-lg text-slate-400 hover:text-white transition-colors"
+            >
+              <X className="w-5 h-5" />
+            </button>
+            
+            <h3 className="text-xl font-bold text-white mb-2">Contact Support</h3>
+            <p className="text-xs text-slate-400 mb-6">
+              Our support team is here to help you. Reach out to us via Email or WhatsApp.
+            </p>
+
+            <div className="space-y-4">
+              {/* Email support option */}
+              <div className="flex items-center justify-between p-3.5 bg-neutral-950/20 border border-neutral-800/60 hover:border-neutral-800 rounded-xl transition-all">
+                <div className="flex items-center gap-3.5 min-w-0">
+                  <div className="w-10 h-10 rounded-lg bg-emerald-500/10 text-emerald-400 flex items-center justify-center shrink-0 border border-emerald-500/20">
+                    <Mail className="w-5 h-5" />
+                  </div>
+                  <div className="min-w-0">
+                    <span className="text-[10px] text-slate-500 block font-bold uppercase tracking-wider">Email Us</span>
+                    <span className="text-xs text-slate-300 font-semibold truncate block">pavanbyagari9912@gmail.com</span>
+                  </div>
+                </div>
+                <a
+                  href="mailto:pavanbyagari9912@gmail.com"
+                  className="px-3 py-1.5 bg-emerald-500 hover:bg-emerald-600 text-slate-950 rounded-lg text-[10px] font-bold transition-colors shrink-0"
+                >
+                  Mail
+                </a>
+              </div>
+
+              {/* WhatsApp support option */}
+              <div className="flex items-center justify-between p-3.5 bg-neutral-950/20 border border-neutral-800/60 hover:border-neutral-800 rounded-xl transition-all">
+                <div className="flex items-center gap-3.5 min-w-0">
+                  <div className="w-10 h-10 rounded-lg bg-emerald-500/10 text-emerald-400 flex items-center justify-center shrink-0 border border-emerald-500/20">
+                    <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24">
+                      <path d="M12.031 2c-5.514 0-9.99 4.476-9.99 9.99 0 1.764.459 3.48 1.332 4.992L2 22l5.184-1.359c1.467.801 3.12 1.224 4.815 1.224 5.513 0 9.99-4.476 9.99-9.99v-.006C22.01 6.48 17.534 2 12.031 2zm0 1.62c4.614 0 8.367 3.753 8.367 8.37 0 4.617-3.753 8.37-8.367 8.37-1.464 0-2.895-.384-4.155-1.116l-.297-.174-3.084.81.825-3.003-.192-.306c-.792-1.266-1.212-2.73-1.212-4.233-.003-4.614 3.75-8.367 8.364-8.367h.009zm-3.327 3.39c-.18 0-.387.045-.558.234-.171.189-.657.639-.657 1.557 0 .918.666 1.809.756 1.935.09.126 1.284 2.085 3.165 2.829.447.177.795.285 1.071.372.45.141.858.12 1.182.072.36-.054 1.107-.45 1.263-.888.156-.438.156-.816.108-.888-.048-.072-.18-.126-.378-.216-.198-.09-1.167-.576-1.347-.639-.18-.063-.312-.09-.444.09-.132.18-.51.639-.624.765-.114.126-.228.144-.426.054a5.352 5.352 0 0 1-1.569-1.026c-.49-.477-.822-1.053-.918-1.233-.096-.18-.009-.279.081-.369.081-.081.18-.216.27-.324.09-.108.12-.18.18-.306.06-.126.03-.234-.015-.324-.045-.09-.444-1.071-.606-1.476-.159-.387-.324-.333-.444-.339-.114-.006-.246-.006-.378-.006z"/>
+                    </svg>
+                  </div>
+                  <div className="min-w-0">
+                    <span className="text-[10px] text-slate-500 block font-bold uppercase tracking-wider">WhatsApp</span>
+                    <span className="text-xs text-slate-300 font-semibold truncate block">+91 9912634731</span>
+                  </div>
+                </div>
+                <a
+                  href="https://wa.me/919912634731"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-3 py-1.5 bg-emerald-500 hover:bg-emerald-600 text-slate-950 rounded-lg text-[10px] font-bold transition-colors shrink-0"
+                >
+                  Chat
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
