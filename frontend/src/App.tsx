@@ -12,7 +12,6 @@ import { RegisterForm } from './components/auth/RegisterForm';
 import { ForgotPassword } from './components/auth/ForgotPassword';
 import { ResetPassword } from './components/auth/ResetPassword';
 import { ProtectedRoute } from './components/layout/ProtectedRoute';
-import { OtpDemo } from './components/auth/OtpDemo';
 
 export const App: React.FC = () => {
   const { mode } = useSelector((state: RootState) => state.theme);
@@ -28,7 +27,6 @@ export const App: React.FC = () => {
       <Routes>
         {/* Public Landing */}
         <Route path="/" element={<LandingPage />} />
-        <Route path="/otp-demo" element={<OtpDemo />} />
 
         {/* Guest Authentication Routing */}
         <Route
