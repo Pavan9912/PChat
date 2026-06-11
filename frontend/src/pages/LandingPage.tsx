@@ -1,7 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
-import { MessageSquare, Shield, Zap, Video, Users, Moon, ArrowRight } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 import { RootState } from '../store';
 
 export const LandingPage: React.FC = () => {
@@ -94,115 +94,7 @@ export const LandingPage: React.FC = () => {
         </div>
       </section>
 
-      {/* Feature Grid */}
-      <section className="relative z-10 bg-slate-900/40 border-t border-slate-900 py-24">
-        <div className="max-w-6xl mx-auto px-6">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl font-bold text-white mb-4">Engaging Chat Experience</h2>
-            <p className="text-slate-400 max-w-xl mx-auto">PChatNow comes pre-packed with state of the art tools to keep you in sync with colleagues, friends, and family.</p>
-          </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {/* Real-time messaging */}
-            <div className="bg-slate-900/60 border border-slate-800 p-8 rounded-2xl hover:border-emerald-500/30 transition-colors group">
-              <div className="w-12 h-12 rounded-xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-                <Zap className="w-6 h-6" />
-              </div>
-              <h3 className="text-xl font-bold text-white mb-3">Instant Messaging</h3>
-              <p className="text-slate-400 leading-relaxed text-sm">
-                Bidirectional real-time Socket.IO streams deliver your messages instantly. Read receipts, typing states, and emoji reactions update live.
-              </p>
-            </div>
-
-            {/* Calling */}
-            <div className="bg-slate-900/60 border border-slate-800 p-8 rounded-2xl hover:border-emerald-500/30 transition-colors group">
-              <div className="w-12 h-12 rounded-xl bg-indigo-500/10 text-indigo-400 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-                <Video className="w-6 h-6" />
-              </div>
-              <h3 className="text-xl font-bold text-white mb-3">Voice & Video Calls</h3>
-              <p className="text-slate-400 leading-relaxed text-sm">
-                WebRTC audio-video channels let you make high-fidelity calls. Integrated controls enable easy mic muting or camera toggles.
-              </p>
-            </div>
-
-            {/* Groups */}
-            <div className="bg-slate-900/60 border border-slate-800 p-8 rounded-2xl hover:border-emerald-500/30 transition-colors group">
-              <div className="w-12 h-12 rounded-xl bg-teal-500/10 text-teal-400 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-                <Users className="w-6 h-6" />
-              </div>
-              <h3 className="text-xl font-bold text-white mb-3">Group Channels</h3>
-              <p className="text-slate-400 leading-relaxed text-sm">
-                Create chat rooms, coordinate admin structures, add members, or send invite links to let anyone join in seconds.
-              </p>
-            </div>
-
-            {/* Security */}
-            <div className="bg-slate-900/60 border border-slate-800 p-8 rounded-2xl hover:border-emerald-500/30 transition-colors group">
-              <div className="w-12 h-12 rounded-xl bg-red-500/10 text-red-400 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-                <Shield className="w-6 h-6" />
-              </div>
-              <h3 className="text-xl font-bold text-white mb-3">Secure Operations</h3>
-              <p className="text-slate-400 leading-relaxed text-sm">
-                Equipped with hashed passwords, JWT validation in secure cookies, CORS limits, request rate mitigations, and input sanitization filters.
-              </p>
-            </div>
-
-            {/* Themes */}
-            <div className="bg-slate-900/60 border border-slate-800 p-8 rounded-2xl hover:border-emerald-500/30 transition-colors group">
-              <div className="w-12 h-12 rounded-xl bg-amber-500/10 text-amber-400 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-                <Moon className="w-6 h-6" />
-              </div>
-              <h3 className="text-xl font-bold text-white mb-3">Dark & Light Themes</h3>
-              <p className="text-slate-400 leading-relaxed text-sm">
-                Easily toggle between a sleek tech dark view or clean light themes, persisting the layout settings locally across sessions.
-              </p>
-            </div>
-
-            {/* File Sharing */}
-            <div className="bg-slate-900/60 border border-slate-800 p-8 rounded-2xl hover:border-emerald-500/30 transition-colors group">
-              <div className="w-12 h-12 rounded-xl bg-pink-500/10 text-pink-400 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-                <MessageSquare className="w-6 h-6" />
-              </div>
-              <h3 className="text-xl font-bold text-white mb-3">Rich Attachments</h3>
-              <p className="text-slate-400 leading-relaxed text-sm">
-                Upload images, videos, voice notes, PDFs, or slides. Cloudinary cloud caching and local server fallbacks ensure uploads always load.
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Testimonial Section */}
-      <section className="relative z-10 py-24">
-        <div className="max-w-6xl mx-auto px-6">
-          <div className="bg-gradient-to-tr from-slate-900 via-slate-900 to-indigo-950/20 border border-slate-800 rounded-3xl p-8 md:p-16 flex flex-col md:flex-row items-center gap-12">
-            <div className="flex-1">
-              <h3 className="text-2xl md:text-3xl font-bold text-white mb-4">What our users say</h3>
-              <p className="text-slate-400 italic mb-6">
-                "PChatNow completely changed how our development team stays in touch. The voice notes and the instant group calling features feel extremely responsive and premium, and the dark mode is gorgeous."
-              </p>
-              <div>
-                <span className="font-bold text-white block">Alex Mercer</span>
-                <span className="text-xs text-slate-500">Lead Tech Architect, Vellum Dev</span>
-              </div>
-            </div>
-            <div className="w-full md:w-1/3 flex justify-center">
-              <div className="relative w-48 h-48">
-                <div className="absolute inset-0 bg-emerald-400/20 rounded-2xl blur-xl" />
-                <div className="relative w-full h-full rounded-2xl border border-slate-800 bg-slate-950 flex flex-col items-center justify-center text-center p-4">
-                  <div className="text-3xl font-black text-emerald-400">99.9%</div>
-                  <div className="text-xs font-bold text-slate-500 uppercase mt-2">Uptime verified</div>
-                  <div className="text-xl tracking-tight mt-4">
-                    <span className="font-extrabold text-white">PChat</span>
-                    <span className="font-medium text-slate-400">Now</span>
-                    <span className="font-bold text-white ml-1.5">Live</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
 
       {/* Footer */}
       <footer className="relative z-10 border-t border-slate-900 py-10 mt-auto bg-slate-950/60">
