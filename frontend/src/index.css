@@ -144,3 +144,10 @@
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
+
+@media (min-width: 768px) {
+  .resizable-sidebar-panel {
+    width: var(--sidebar-width, 320px) !important;
+  }
+}
+

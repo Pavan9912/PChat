@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { ArrowLeft } from 'lucide-react';
 import { RootState } from '../store';
@@ -22,6 +22,53 @@ export const Dashboard: React.FC = () => {
   const [activeTab, setActiveTab] = useState('chats');
   const [showRightSidebar, setShowRightSidebar] = useState(false);
 
+  const [sidebarWidth, setSidebarWidth] = useState(() => {
+    const saved = localStorage.getItem('sidebarWidth');
+    return saved ? parseInt(saved, 10) : 320;
+  });
+  const [isResizing, setIsResizing] = useState(false);
+  const panelRef = useRef<HTMLDivElement>(null);
+
+  const startResizing = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    setIsResizing(true);
+  }, []);
+
+  const stopResizing = useCallback(() => {
+    setIsResizing(false);
+  }, []);
+
+  const resize = useCallback((e: MouseEvent) => {
+    if (panelRef.current) {
+      const rect = panelRef.current.getBoundingClientRect();
+      const newWidth = e.clientX - rect.left;
+      if (newWidth >= 240 && newWidth <= 600) {
+        setSidebarWidth(newWidth);
+        localStorage.setItem('sidebarWidth', newWidth.toString());
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    if (isResizing) {
+      window.addEventListener('mousemove', resize);
+      window.addEventListener('mouseup', stopResizing);
+      document.body.style.cursor = 'col-resize';
+      document.body.style.userSelect = 'none';
+    } else {
+      window.removeEventListener('mousemove', resize);
+      window.removeEventListener('mouseup', stopResizing);
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+    }
+    return () => {
+      window.removeEventListener('mousemove', resize);
+      window.removeEventListener('mouseup', stopResizing);
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+    };
+  }, [isResizing, resize, stopResizing]);
+
   return (
     <div className="flex h-screen w-screen overflow-hidden bg-slate-950 text-slate-100 font-sans antialiased">
       
@@ -37,7 +84,13 @@ export const Dashboard: React.FC = () => {
         <SidebarTabs activeTab={activeTab} setActiveTab={setActiveTab} />
         
         {/* Active Tab Panel viewer */}
-        <div className="w-full md:w-80 border-r border-neutral-900 h-full">
+        <div 
+          ref={panelRef}
+          className="w-full border-r border-neutral-900 h-full relative resizable-sidebar-panel flex-shrink-0"
+          style={{
+            ['--sidebar-width' as any]: `${sidebarWidth}px`
+          }}
+        >
           {activeTab === 'chats' && <ChatsTab />}
           {activeTab === 'status' && <StatusTab />}
           {activeTab === 'friends' && <FriendsTab setActiveTab={setActiveTab} />}
@@ -45,6 +98,17 @@ export const Dashboard: React.FC = () => {
           {activeTab === 'notifications' && <NotificationsTab />}
           {activeTab === 'settings' && <SettingsTab />}
           {activeTab === 'admin' && <AdminOverview />}
+
+          {/* Resize handle (desktop only) */}
+          <div
+            onMouseDown={startResizing}
+            className={`hidden md:block absolute right-0 top-0 bottom-0 w-1.5 cursor-col-resize z-50 select-none group/resize hover:bg-emerald-500/30 active:bg-emerald-500 transition-colors duration-150 ${
+              isResizing ? 'bg-emerald-500' : ''
+            }`}
+            style={{ marginRight: '-3px' }}
+          >
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-0.5 h-8 bg-neutral-700 group-hover/resize:bg-white group-active/resize:bg-white rounded opacity-0 group-hover/resize:opacity-100 transition-opacity" />
+          </div>
         </div>
       </div>
 
