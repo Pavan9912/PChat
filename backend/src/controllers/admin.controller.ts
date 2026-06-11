@@ -4,6 +4,11 @@ import { User } from '../models/User';
 import { Message, getUserMessageModel } from '../models/Message';
 import { Chat } from '../models/Chat';
 import { Report } from '../models/Report';
+import { FriendRequest } from '../models/FriendRequest';
+import { Notification } from '../models/Notification';
+import { Otp } from '../models/Otp';
+import { Status } from '../models/Status';
+import { AuthRequest } from '../middleware/auth.middleware';
 
 const getUniqueMessagesCount = async (timeFilter?: Date): Promise<number> => {
   try {
@@ -297,3 +302,105 @@ export const deleteReportedContent = async (req: Request, res: Response) => {
     return res.status(500).json({ message: 'Internal Server Error' });
   }
 };
+
+// @desc    Get Database Storage Statistics
+// @route   GET /api/admin/database/stats
+// @access  Private/Admin
+export const getDatabaseStats = async (req: AuthRequest, res: Response) => {
+  try {
+    const db = mongoose.connection.db;
+    if (!db) {
+      return res.status(500).json({ message: 'Database connection not ready' });
+    }
+
+    const stats = await db.stats();
+    
+    // Atlas free tier limit is 512MB = 536870912 bytes
+    const totalStorageLimit = 512 * 1024 * 1024;
+    const storageSize = stats.storageSize || 0;
+    const freeSpace = Math.max(0, totalStorageLimit - storageSize);
+
+    return res.status(200).json({
+      dbName: stats.db,
+      collectionsCount: stats.collections,
+      documentsCount: stats.objects,
+      avgObjSize: stats.avgObjSize || 0,
+      dataSize: stats.dataSize || 0, // uncompressed data size
+      storageSize: storageSize, // compressed/allocated size on disk
+      indexSize: stats.indexSize || 0,
+      totalSize: stats.totalSize || (storageSize + (stats.indexSize || 0)),
+      totalStorageLimit,
+      freeSpace,
+    });
+  } catch (error: any) {
+    console.error('Get database stats error:', error);
+    // Return fallback counts if stats command is not allowed on this DB server
+    try {
+      const db = mongoose.connection.db;
+      const collections = await db?.listCollections().toArray() || [];
+      const totalUsers = await User.countDocuments();
+      const totalChats = await Chat.countDocuments();
+      const totalReports = await Report.countDocuments();
+      
+      return res.status(200).json({
+        dbName: mongoose.connection.name,
+        collectionsCount: collections.length,
+        documentsCount: totalUsers + totalChats + totalReports,
+        avgObjSize: 0,
+        dataSize: 0,
+        storageSize: 0,
+        indexSize: 0,
+        totalSize: 0,
+        totalStorageLimit: 512 * 1024 * 1024,
+        freeSpace: 512 * 1024 * 1024,
+        isFallback: true,
+      });
+    } catch (fallbackError) {
+      return res.status(500).json({ message: 'Internal Server Error' });
+    }
+  }
+};
+
+// @desc    Clear All Database Data completely (Except current admin)
+// @route   DELETE /api/admin/database/clear
+// @access  Private/Admin
+export const clearDatabaseData = async (req: AuthRequest, res: Response) => {
+  try {
+    const db = mongoose.connection.db;
+    if (!db) {
+      return res.status(500).json({ message: 'Database connection not ready' });
+    }
+
+    const currentAdminId = req.user?._id;
+    if (!currentAdminId) {
+      return res.status(401).json({ message: 'Admin session user not found' });
+    }
+
+    // 1. Delete all dynamic message collections (messages_user_*)
+    const collections = await db.listCollections().toArray();
+    const msgCollections = collections.filter(c => c.name.startsWith('messages_user_'));
+    for (const col of msgCollections) {
+      await db.dropCollection(col.name);
+    }
+
+    // 2. Clear other data collections (keep the current admin user)
+    await Chat.deleteMany({});
+    await FriendRequest.deleteMany({});
+    await Notification.deleteMany({});
+    await Otp.deleteMany({});
+    await Report.deleteMany({});
+    await Status.deleteMany({});
+    
+    // Delete all users except the current admin
+    await User.deleteMany({ _id: { $ne: currentAdminId } });
+
+    return res.status(200).json({ 
+      success: true, 
+      message: 'All database data (messages, chats, users, notifications, reports, statuses) cleared successfully. Current admin account preserved.' 
+    });
+  } catch (error: any) {
+    console.error('Clear database data error:', error);
+    return res.status(500).json({ message: 'Internal Server Error' });
+  }
+};
+

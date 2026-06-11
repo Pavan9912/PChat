@@ -8,6 +8,8 @@ import {
   getReports,
   resolveReport,
   deleteReportedContent,
+  getDatabaseStats,
+  clearDatabaseData,
 } from '../controllers/admin.controller';
 import { protect, admin } from '../middleware/auth.middleware';
 
@@ -25,4 +27,9 @@ router.get('/reports', protect, admin, getReports);
 router.put('/reports/:reportId/resolve', protect, admin, resolveReport);
 router.delete('/reports/:reportId/content', protect, admin, deleteReportedContent);
 
+// Database diagnostic and cleanup routes
+router.get('/database/stats', protect, admin, getDatabaseStats);
+router.delete('/database/clear', protect, admin, clearDatabaseData);
+
 export default router;
+

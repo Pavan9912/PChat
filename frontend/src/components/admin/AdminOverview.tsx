@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { Users, MessageSquare, ShieldAlert, BarChart3, AlertCircle, Ban, Trash2, CheckCircle } from 'lucide-react';
+import { Users, MessageSquare, ShieldAlert, BarChart3, AlertCircle, Ban, Trash2, CheckCircle, Database } from 'lucide-react';
 import { RootState } from '../../store';
 import {
   adminStart,
@@ -19,7 +19,9 @@ export const AdminOverview: React.FC = () => {
   const dispatch = useDispatch();
   const { analytics, users, reports, isLoading, error } = useSelector((state: RootState) => state.admin);
 
-  const [adminTab, setAdminTab] = useState<'stats' | 'users' | 'reports'>('stats');
+  const [adminTab, setAdminTab] = useState<'stats' | 'users' | 'reports' | 'database'>('stats');
+  const [dbStats, setDbStats] = useState<any>(null);
+  const [isClearing, setIsClearing] = useState(false);
   const apiHost = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
   const loadAdminData = async () => {
@@ -55,9 +57,72 @@ export const AdminOverview: React.FC = () => {
     }
   };
 
+  const loadDbStats = async () => {
+    try {
+      const res = await fetch(`${apiHost}/api/admin/database/stats`, {
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setDbStats(data);
+      }
+    } catch (err) {
+      console.error('Failed to load db stats:', err);
+    }
+  };
+
+  const formatBytes = (bytes: number, decimals = 2) => {
+    if (!bytes) return '0 Bytes';
+    const k = 1024;
+    const dm = decimals < 0 ? 0 : decimals;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
+  };
+
+  const handleClearDatabase = async () => {
+    const confirm1 = confirm(
+      'WARNING: Are you sure you want to delete all database data? This will wipe all user accounts, messages, chats, and notifications.'
+    );
+    if (!confirm1) return;
+    const confirm2 = confirm('LAST WARNING: This is completely irreversible. Type "DELETE EVERYTHING" to confirm.');
+    if (!confirm2) return;
+    const textConfirm = prompt('Please type "DELETE EVERYTHING" to confirm deletion of the database data:');
+    if (textConfirm !== 'DELETE EVERYTHING') {
+      alert('Confirmation text did not match. Operation cancelled.');
+      return;
+    }
+
+    setIsClearing(true);
+    try {
+      const res = await fetch(`${apiHost}/api/admin/database/clear`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+      });
+      const data = await res.json();
+      if (res.ok) {
+        alert(data.message);
+        setAdminTab('stats');
+        loadAdminData();
+      } else {
+        alert(data.message || 'Failed to clear database');
+      }
+    } catch (err: any) {
+      alert('Error clearing database: ' + err.message);
+    } finally {
+      setIsClearing(false);
+    }
+  };
+
   useEffect(() => {
     loadAdminData();
   }, [dispatch]);
+
+  useEffect(() => {
+    if (adminTab === 'database') {
+      loadDbStats();
+    }
+  }, [adminTab]);
 
   const handleToggleBan = async (userId: string, isCurrentlyBanned: boolean) => {
     try {
@@ -175,6 +240,16 @@ export const AdminOverview: React.FC = () => {
                 {reports.filter((r) => r.status === 'pending').length}
               </span>
             )}
+          </button>
+          <button
+            onClick={() => setAdminTab('database')}
+            className={`pb-3 px-2 border-b-2 transition-colors ${
+              adminTab === 'database'
+                ? 'border-indigo-500 text-indigo-400'
+                : 'border-transparent text-dark-secondary hover:text-white'
+            }`}
+          >
+            Database Tools
           </button>
         </div>
       </div>
@@ -411,6 +486,97 @@ export const AdminOverview: React.FC = () => {
             ) : (
               <div className="text-center py-12 text-sm text-dark-secondary">No abuse reports in queue</div>
             )}
+          </div>
+        )}
+
+        {adminTab === 'database' && (
+          <div className="space-y-6 animate-fade-in">
+            {/* Database Stats Card */}
+            {dbStats ? (
+              <div className="p-5 border border-neutral-900 bg-dark-input/10 rounded-2xl space-y-4">
+                <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                  <Database className="w-4 h-4 text-indigo-400" />
+                  Database Storage & Statistics
+                </h3>
+                
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                  <div className="p-4 bg-dark-input/20 border border-neutral-900 rounded-xl">
+                    <span className="text-xs text-dark-secondary">Collections</span>
+                    <div className="text-lg font-bold text-white mt-1">{dbStats.collectionsCount}</div>
+                  </div>
+                  <div className="p-4 bg-dark-input/20 border border-neutral-900 rounded-xl">
+                    <span className="text-xs text-dark-secondary">Total Documents</span>
+                    <div className="text-lg font-bold text-white mt-1">{dbStats.documentsCount}</div>
+                  </div>
+                  <div className="p-4 bg-dark-input/20 border border-neutral-900 rounded-xl">
+                    <span className="text-xs text-dark-secondary">Allocated Storage</span>
+                    <div className="text-lg font-bold text-white mt-1">
+                      {formatBytes(dbStats.storageSize)}
+                    </div>
+                  </div>
+                  <div className="p-4 bg-dark-input/20 border border-neutral-900 rounded-xl">
+                    <span className="text-xs text-dark-secondary">Free Space (512 MB Limit)</span>
+                    <div className="text-lg font-bold text-white mt-1 text-emerald-400">
+                      {formatBytes(dbStats.freeSpace)}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Progress bar */}
+                <div className="space-y-1">
+                  <div className="flex justify-between text-xs font-semibold">
+                    <span className="text-dark-secondary">Storage Used: {((dbStats.storageSize / dbStats.totalStorageLimit) * 100).toFixed(2)}%</span>
+                    <span className="text-dark-secondary">Limit: {formatBytes(dbStats.totalStorageLimit)}</span>
+                  </div>
+                  <div className="w-full bg-neutral-900 rounded-full h-2">
+                    <div 
+                      className="bg-indigo-500 h-2 rounded-full transition-all duration-500" 
+                      style={{ width: `${Math.min(100, (dbStats.storageSize / dbStats.totalStorageLimit) * 100)}%` }}
+                    />
+                  </div>
+                </div>
+
+                <div className="text-xs text-dark-secondary bg-dark-input/20 p-3 rounded-lg border border-neutral-900/50">
+                  <span className="font-bold text-white block mb-1">Details:</span>
+                  <ul className="list-disc pl-4 space-y-1">
+                    <li>Database Name: <span className="font-mono text-white">{dbStats.dbName}</span></li>
+                    <li>Uncompressed Data Size: <span className="text-slate-300">{formatBytes(dbStats.dataSize)}</span></li>
+                    <li>Indexes Size: <span className="text-slate-300">{formatBytes(dbStats.indexSize)}</span></li>
+                    <li>Average Object Size: <span className="text-slate-300">{formatBytes(dbStats.avgObjSize)}</span></li>
+                  </ul>
+                </div>
+              </div>
+            ) : (
+              <div className="text-center py-6 text-sm text-dark-secondary">Loading storage metrics...</div>
+            )}
+
+            {/* Clear Database Card */}
+            <div className="p-5 border border-red-900/30 bg-red-950/5 rounded-2xl space-y-4">
+              <h3 className="text-sm font-bold text-red-400 flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 text-red-400" />
+                Danger Zone
+              </h3>
+              
+              <p className="text-xs text-slate-400 leading-relaxed">
+                Wiping database data will permanently delete all messages (from all chat rooms), chats, friend requests, 
+                notifications, user statuses, and user accounts. The only account that will be preserved is your current 
+                active administrator account.
+              </p>
+
+              <div className="bg-red-500/10 border border-red-500/20 p-3.5 rounded-xl text-xs text-red-400 font-semibold">
+                Warning: This action is irreversible. All users currently logged in will be disconnected and their accounts deleted.
+              </div>
+
+              <div className="pt-2">
+                <button
+                  onClick={handleClearDatabase}
+                  disabled={isClearing}
+                  className="px-4 py-2 bg-red-500/10 hover:bg-red-500 hover:text-white border border-red-500/20 text-red-400 font-bold rounded-xl text-sm transition-all"
+                >
+                  {isClearing ? 'Clearing Database...' : 'Clear Database Data Completely'}
+                </button>
+              </div>
+            </div>
           </div>
         )}
       </div>
