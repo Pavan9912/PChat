@@ -8,6 +8,7 @@ import {
   removeFriend,
   blockUser,
   unblockUser,
+  getBlockedUsers,
 } from '../controllers/friend.controller';
 import { protect } from '../middleware/auth.middleware';
 
@@ -17,6 +18,7 @@ router.use(protect); // All friend routes require JWT login
 
 router.get('/', getFriends);
 router.get('/requests', getFriendRequests);
+router.get('/blocked', getBlockedUsers);
 router.post('/request', sendFriendRequest);
 router.post('/accept', acceptFriendRequest);
 router.post('/reject', rejectFriendRequest);

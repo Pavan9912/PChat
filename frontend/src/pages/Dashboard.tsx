@@ -86,7 +86,7 @@ export const Dashboard: React.FC = () => {
         {/* Active Tab Panel viewer */}
         <div 
           ref={panelRef}
-          className="w-full border-r border-neutral-900 h-full relative resizable-sidebar-panel flex-shrink-0"
+          className="flex-1 border-r border-neutral-900 h-full relative resizable-sidebar-panel flex-shrink-0"
           style={{
             ['--sidebar-width' as any]: `${sidebarWidth}px`
           }}

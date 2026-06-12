@@ -45,17 +45,12 @@ export const SettingsTab: React.FC = () => {
     // Fetch full profiles of blocked users
     const fetchBlocked = async () => {
       try {
-        const res = await fetch(`${apiHost}/api/users/profile`, {
+        const res = await fetch(`${apiHost}/api/friends/blocked`, {
           headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
         });
         const data = await res.json();
-        if (res.ok && data.blockedUsers) {
-          // Since blockedUsers is just IDs, we can populate them from searches or simplify
-          // by listing them as simple rows. For now, fetch current profile returns populated blocked list
-          // wait, user.controller does not populate blocked users by default in getUserProfile.
-          // Let's call getUserProfile to verify, or fetch from DB. Actually, we can fetch from User profile
-          // which has the list.
-          setBlockedUsers(data.blockedUsers || []);
+        if (res.ok && Array.isArray(data)) {
+          setBlockedUsers(data);
         }
       } catch (err) {
         console.error('Fetch blocked users error:', err);
@@ -164,7 +159,7 @@ export const SettingsTab: React.FC = () => {
 
       const data = await res.json();
       if (res.ok) {
-        setBlockedUsers(blockedUsers.filter((id) => id !== targetUserId));
+        setBlockedUsers(blockedUsers.filter((u) => u._id !== targetUserId));
         alert('User unblocked successfully.');
       }
     } catch (err) {
@@ -403,13 +398,31 @@ export const SettingsTab: React.FC = () => {
         {blockedUsers.length > 0 && (
           <div className="p-4 border border-neutral-900 bg-dark-input/10 rounded-2xl space-y-3">
             <h3 className="text-xs font-bold text-dark-secondary uppercase tracking-widest">Blocked Users</h3>
-            <div className="space-y-1.5">
-              {blockedUsers.map((bId) => (
-                <div key={bId} className="flex items-center justify-between p-2 rounded bg-dark-input/20">
-                  <span className="text-xs text-white font-semibold">User ID: {bId}</span>
+            <div className="space-y-2.5">
+              {blockedUsers.map((bUser) => (
+                <div key={bUser._id} className="flex items-center justify-between p-3.5 bg-dark-input/20 border border-neutral-900 rounded-xl">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="relative shrink-0">
+                      {bUser.avatar ? (
+                        <img
+                          src={bUser.avatar.startsWith('/') ? `${apiHost}${bUser.avatar}` : bUser.avatar}
+                          alt={bUser.name}
+                          className="w-9 h-9 rounded-lg object-cover animate-fade-in"
+                        />
+                      ) : (
+                        <div className="w-9 h-9 rounded-lg bg-neutral-800 flex items-center justify-center font-bold text-white uppercase text-xs animate-fade-in">
+                          {bUser.name.charAt(0)}
+                        </div>
+                      )}
+                    </div>
+                    <div className="min-w-0">
+                      <span className="text-xs text-white font-semibold block truncate">{bUser.name}</span>
+                      <span className="text-[10px] text-dark-secondary block truncate mt-0.5">@{bUser.username}</span>
+                    </div>
+                  </div>
                   <button
-                    onClick={() => handleUnblock(bId)}
-                    className="px-2.5 py-1 rounded bg-neutral-800 text-[10px] font-bold text-white border border-neutral-700 hover:bg-neutral-700 transition-colors"
+                    onClick={() => handleUnblock(bUser._id)}
+                    className="px-3 py-1.5 rounded bg-neutral-850 hover:bg-neutral-800 text-[10px] font-bold text-white border border-neutral-800 hover:border-neutral-700 transition-all select-none"
                   >
                     Unblock
                   </button>

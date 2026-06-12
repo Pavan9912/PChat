@@ -275,3 +275,25 @@ export const unblockUser = async (req: AuthRequest, res: Response) => {
     return res.status(500).json({ message: 'Internal Server Error' });
   }
 };
+
+// @desc    Get Blocked Users list with profiles
+// @route   GET /api/friends/blocked
+// @access  Private
+export const getBlockedUsers = async (req: AuthRequest, res: Response) => {
+  if (!req.user) return res.status(401).json({ message: 'Not authenticated' });
+
+  try {
+    const user = await User.findById(req.user._id).populate(
+      'blockedUsers',
+      'name username email avatar bio statusMessage isOnline lastSeen'
+    );
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    return res.status(200).json(user.blockedUsers || []);
+  } catch (error) {
+    console.error('Get blocked users list error:', error);
+    return res.status(500).json({ message: 'Internal Server Error' });
+  }
+};
